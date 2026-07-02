@@ -22,8 +22,8 @@ class OnboardingViewModel @Inject constructor() : ViewModel() {
 
     fun onIntent(intent: OnboardingIntent) {
         when (intent) {
-            is OnboardingIntent.StartApp  -> sendEffect(OnboardingEffect.NavigateToHome)
-            is OnboardingIntent.GoToLogin -> sendEffect(OnboardingEffect.NavigateToLogin)
+            is OnboardingIntent.StartRegister -> sendEffect(OnboardingEffect.NavigateToRegister)
+            is OnboardingIntent.GoToLogin     -> sendEffect(OnboardingEffect.NavigateToLogin)
         }
     }
 

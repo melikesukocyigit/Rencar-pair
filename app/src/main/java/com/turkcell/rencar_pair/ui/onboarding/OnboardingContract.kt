@@ -6,11 +6,11 @@ data class OnboardingUiState(
 )
 
 sealed interface OnboardingIntent {
-    data object StartApp  : OnboardingIntent
-    data object GoToLogin : OnboardingIntent
+    data object StartRegister : OnboardingIntent
+    data object GoToLogin     : OnboardingIntent
 }
 
 sealed interface OnboardingEffect {
-    data object NavigateToHome  : OnboardingEffect
-    data object NavigateToLogin : OnboardingEffect
+    data object NavigateToRegister : OnboardingEffect
+    data object NavigateToLogin    : OnboardingEffect
 }

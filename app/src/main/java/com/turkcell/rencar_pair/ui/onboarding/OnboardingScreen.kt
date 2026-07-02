@@ -58,7 +58,7 @@ import com.turkcell.rencar_pair.ui.theme.titleL
 
 @Composable
 fun OnboardingRoute(
-    onNavigateToHome: () -> Unit,
+    onNavigateToRegister: () -> Unit,
     onNavigateToLogin: () -> Unit,
     modifier: Modifier = Modifier,
     viewModel: OnboardingViewModel = hiltViewModel(),
@@ -68,8 +68,8 @@ fun OnboardingRoute(
     LaunchedEffect(Unit) {
         viewModel.effect.collect { effect ->
             when (effect) {
-                is OnboardingEffect.NavigateToHome  -> onNavigateToHome()
-                is OnboardingEffect.NavigateToLogin -> onNavigateToLogin()
+                is OnboardingEffect.NavigateToRegister -> onNavigateToRegister()
+                is OnboardingEffect.NavigateToLogin    -> onNavigateToLogin()
             }
         }
     }
@@ -120,7 +120,7 @@ fun OnboardingScreen(
         Spacer(modifier = Modifier.height(12.dp))
 
         Text(
-            text = "Yakindaki araci bul,\ndakikalar icinde yola cik.",
+            text = "Yakındaki aracı bul,\ndakikalar içinde yola çık.",
             style = bodyL,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             textAlign = TextAlign.Center,
@@ -136,7 +136,7 @@ fun OnboardingScreen(
         Spacer(modifier = Modifier.height(32.dp))
 
         Button(
-            onClick = { onIntent(OnboardingIntent.StartApp) },
+            onClick = { onIntent(OnboardingIntent.StartRegister) },
             modifier = Modifier
                 .fillMaxWidth()
                 .height(56.dp),
@@ -147,7 +147,7 @@ fun OnboardingScreen(
             ),
         ) {
             Text(
-                text = "Hemen Basla",
+                text = "Hemen Başla",
                 style = titleL,
                 color = TextOnPrimary,
             )
@@ -244,10 +244,10 @@ private fun SecondaryLoginRow(
 ) {
     val annotatedText = buildAnnotatedString {
         withStyle(SpanStyle(color = MaterialTheme.colorScheme.onSurfaceVariant)) {
-            append("Zaten hesabim var · ")
+            append("Zaten hesabım var · ")
         }
         withStyle(SpanStyle(color = linkColor)) {
-            append("Giris yap")
+            append("Giriş yap")
         }
     }
 
@@ -256,7 +256,7 @@ private fun SecondaryLoginRow(
         style = bodyM.copy(textAlign = TextAlign.Center),
         modifier = modifier,
         onClick = { offset ->
-            val loginStart = annotatedText.indexOf("Giris yap")
+            val loginStart = annotatedText.indexOf("Giriş yap")
             if (offset >= loginStart) onLoginClick()
         },
     )
