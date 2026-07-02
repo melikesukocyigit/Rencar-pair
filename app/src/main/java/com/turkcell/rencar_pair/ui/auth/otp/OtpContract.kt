@@ -25,7 +25,7 @@ sealed interface OtpIntent {
 }
 
 sealed interface OtpEffect {
-    data object NavigateToHome : OtpEffect
+    data class NavigateToHome(val role: String) : OtpEffect
     data object NavigateBack : OtpEffect
     data class ShowError(val message: String) : OtpEffect
     data class ShowSuccess(val message: String) : OtpEffect

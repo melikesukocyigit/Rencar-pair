@@ -61,7 +61,7 @@ import com.turkcell.rencar_pair.ui.theme.titleM
 
 @Composable
 fun OtpRoute(
-    onNavigateToHome: () -> Unit,
+    onNavigateToHome: (role: String) -> Unit,
     onNavigateBack: () -> Unit,
     modifier: Modifier = Modifier,
     viewModel: OtpViewModel = hiltViewModel(),
@@ -73,7 +73,7 @@ fun OtpRoute(
         viewModel.effect.collect { effect ->
             when (effect) {
                 is OtpEffect.ShowSuccess    -> snackbarHostState.showSnackbar(effect.message)
-                is OtpEffect.NavigateToHome -> onNavigateToHome()
+                is OtpEffect.NavigateToHome -> onNavigateToHome(effect.role)
                 is OtpEffect.NavigateBack   -> onNavigateBack()
                 is OtpEffect.ShowError      -> snackbarHostState.showSnackbar(effect.message)
             }
