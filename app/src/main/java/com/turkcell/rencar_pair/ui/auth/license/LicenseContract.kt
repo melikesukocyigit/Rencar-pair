@@ -13,6 +13,8 @@ data class LicenseUiState(
     val frontImageUri: Uri? = null,
     val backImageUri: Uri? = null,
     val selfieImageUri: Uri? = null,
+    val frontImageUrl: String? = null, // Web URL returned from getLicenseStatus
+    val backImageUrl: String? = null,  // Web URL returned from getLicenseStatus
     val isLoading: Boolean = false,
     val isSubmitEnabled: Boolean = false, // True if active step requirements are met
     val status: String = "NOT_SUBMITTED", // NOT_SUBMITTED, UNDER_REVIEW, APPROVED, REJECTED

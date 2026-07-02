@@ -1,6 +1,7 @@
 package com.turkcell.rencar_pair.ui.auth.license
 
 import android.graphics.Bitmap
+import android.graphics.BitmapFactory
 import android.graphics.ImageDecoder
 import android.net.Uri
 import android.os.Build
@@ -25,12 +26,7 @@ import androidx.compose.material.icons.filled.Error
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.HourglassEmpty
 import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.setValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -51,6 +47,8 @@ import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.turkcell.rencar_pair.ui.theme.*
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import java.io.File
 import java.io.FileOutputStream
 
@@ -278,7 +276,7 @@ fun LicenseScreen(
                                         modifier = Modifier.size(36.dp)
                                     )
                                 }
-                                Spacer(modifier = Modifier.height(24.dp))
+                                Spacer(modifier = Modifier.height(16.dp))
                                 Text(
                                     text = "Belgeleriniz Kontrol Ediliyor",
                                     style = headingL,
@@ -287,18 +285,16 @@ fun LicenseScreen(
                                     textAlign = TextAlign.Center
                                 )
                                 
-                                if (state.licenseId != null) {
-                                    Spacer(modifier = Modifier.height(8.dp))
-                                    Text(
-                                        text = "Belge Numarası: ${state.licenseId}",
-                                        style = labelM,
-                                        fontWeight = FontWeight.Bold,
-                                        color = Primary,
-                                        modifier = Modifier
-                                            .background(Primary.copy(alpha = 0.05f), RoundedCornerShape(8.dp))
-                                            .padding(horizontal = 12.dp, vertical = 6.dp)
-                                    )
-                                }
+                                Spacer(modifier = Modifier.height(8.dp))
+                                Text(
+                                    text = "Belge Numarası: ${state.licenseId ?: "İncelemede"}",
+                                    style = labelM,
+                                    fontWeight = FontWeight.Bold,
+                                    color = Primary,
+                                    modifier = Modifier
+                                        .background(Primary.copy(alpha = 0.05f), RoundedCornerShape(8.dp))
+                                        .padding(horizontal = 12.dp, vertical = 6.dp)
+                                )
 
                                 Spacer(modifier = Modifier.height(12.dp))
                                 Text(
@@ -309,18 +305,56 @@ fun LicenseScreen(
                                     modifier = Modifier.padding(horizontal = 16.dp)
                                 )
 
-                                // Debug auto-approve simulator button
-                                if (state.licenseId != null) {
-                                    Spacer(modifier = Modifier.height(32.dp))
-                                    Button(
-                                        onClick = { onIntent(LicenseIntent.TriggerAutoApprove) },
-                                        colors = ButtonDefaults.buttonColors(
-                                            containerColor = SuccessDefault
-                                        ),
-                                        shape = RoundedCornerShape(12.dp)
-                                    ) {
-                                        Text("Yapay Zeka Onayını Simüle Et", color = Color.White, style = labelM)
+                                Spacer(modifier = Modifier.height(24.dp))
+
+                                // Render uploaded document cards side-by-side
+                                val frontUri = state.frontImageUri ?: state.frontImageUrl?.let { Uri.parse(it) }
+                                val backUri = state.backImageUri ?: state.backImageUrl?.let { Uri.parse(it) }
+
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.spacedBy(16.dp)
+                                ) {
+                                    Column(modifier = Modifier.weight(1f)) {
+                                        Text(
+                                            text = "Ehliyet ön yüz",
+                                            style = labelS,
+                                            fontWeight = FontWeight.Bold,
+                                            color = MaterialTheme.colorScheme.onBackground
+                                        )
+                                        Spacer(modifier = Modifier.height(6.dp))
+                                        UploadSlot(
+                                            imageUri = frontUri,
+                                            onClick = {},
+                                            placeholderText = "Yüklenmedi"
+                                        )
                                     }
+                                    Column(modifier = Modifier.weight(1f)) {
+                                        Text(
+                                            text = "Ehliyet arka yüz",
+                                            style = labelS,
+                                            fontWeight = FontWeight.Bold,
+                                            color = MaterialTheme.colorScheme.onBackground
+                                        )
+                                        Spacer(modifier = Modifier.height(6.dp))
+                                        UploadSlot(
+                                            imageUri = backUri,
+                                            onClick = {},
+                                            placeholderText = "Yüklenmedi"
+                                        )
+                                    }
+                                }
+
+                                // Debug auto-approve simulator button (kept visible as local simulation backup)
+                                Spacer(modifier = Modifier.height(32.dp))
+                                Button(
+                                    onClick = { onIntent(LicenseIntent.TriggerAutoApprove) },
+                                    colors = ButtonDefaults.buttonColors(
+                                        containerColor = SuccessDefault
+                                    ),
+                                    shape = RoundedCornerShape(12.dp)
+                                ) {
+                                    Text("Yapay Zeka Onayını Simüle Et", color = Color.White, style = labelM)
                                 }
                             }
                             "APPROVED" -> {
@@ -338,7 +372,7 @@ fun LicenseScreen(
                                         modifier = Modifier.size(48.dp)
                                     )
                                 }
-                                Spacer(modifier = Modifier.height(24.dp))
+                                Spacer(modifier = Modifier.height(16.dp))
                                 Text(
                                     text = "Tebrikler! Ehliyetiniz Onaylandı",
                                     style = headingL,
@@ -347,18 +381,16 @@ fun LicenseScreen(
                                     textAlign = TextAlign.Center
                                 )
 
-                                if (state.licenseId != null) {
-                                    Spacer(modifier = Modifier.height(8.dp))
-                                    Text(
-                                        text = "Belge Numarası: ${state.licenseId}",
-                                        style = labelM,
-                                        fontWeight = FontWeight.Bold,
-                                        color = SuccessDefault,
-                                        modifier = Modifier
-                                            .background(SuccessDefault.copy(alpha = 0.05f), RoundedCornerShape(8.dp))
-                                            .padding(horizontal = 12.dp, vertical = 6.dp)
-                                    )
-                                }
+                                Spacer(modifier = Modifier.height(8.dp))
+                                Text(
+                                    text = "Belge Numarası: ${state.licenseId ?: "Onaylandı"}",
+                                    style = labelM,
+                                    fontWeight = FontWeight.Bold,
+                                    color = SuccessDefault,
+                                    modifier = Modifier
+                                        .background(SuccessDefault.copy(alpha = 0.05f), RoundedCornerShape(8.dp))
+                                        .padding(horizontal = 12.dp, vertical = 6.dp)
+                                )
 
                                 Spacer(modifier = Modifier.height(12.dp))
                                 Text(
@@ -368,6 +400,45 @@ fun LicenseScreen(
                                     textAlign = TextAlign.Center,
                                     modifier = Modifier.padding(horizontal = 16.dp)
                                 )
+
+                                Spacer(modifier = Modifier.height(24.dp))
+
+                                val frontUri = state.frontImageUri ?: state.frontImageUrl?.let { Uri.parse(it) }
+                                val backUri = state.backImageUri ?: state.backImageUrl?.let { Uri.parse(it) }
+
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.spacedBy(16.dp)
+                                ) {
+                                    Column(modifier = Modifier.weight(1f)) {
+                                        Text(
+                                            text = "Ehliyet ön yüz",
+                                            style = labelS,
+                                            fontWeight = FontWeight.Bold,
+                                            color = MaterialTheme.colorScheme.onBackground
+                                        )
+                                        Spacer(modifier = Modifier.height(6.dp))
+                                        UploadSlot(
+                                            imageUri = frontUri,
+                                            onClick = {},
+                                            placeholderText = "Yüklenmedi"
+                                        )
+                                    }
+                                    Column(modifier = Modifier.weight(1f)) {
+                                        Text(
+                                            text = "Ehliyet arka yüz",
+                                            style = labelS,
+                                            fontWeight = FontWeight.Bold,
+                                            color = MaterialTheme.colorScheme.onBackground
+                                        )
+                                        Spacer(modifier = Modifier.height(6.dp))
+                                        UploadSlot(
+                                            imageUri = backUri,
+                                            onClick = {},
+                                            placeholderText = "Yüklenmedi"
+                                        )
+                                    }
+                                }
                             }
                             else -> {
                                 // REJECTED or other errors
@@ -731,18 +802,41 @@ private fun UploadSlot(
     val context = LocalContext.current
     val strokeColor = if (imageUri != null) SuccessDefault else MaterialTheme.colorScheme.outline.copy(alpha = 0.3f)
 
-    val bitmap: Bitmap? = remember(imageUri) {
-        if (imageUri == null) null else {
-            try {
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
-                    val source = ImageDecoder.createSource(context.contentResolver, imageUri)
-                    ImageDecoder.decodeBitmap(source)
-                } else {
-                    @Suppress("DEPRECATION")
-                    MediaStore.Images.Media.getBitmap(context.contentResolver, imageUri)
+    var bitmap by remember(imageUri) { mutableStateOf<Bitmap?>(null) }
+
+    LaunchedEffect(imageUri) {
+        if (imageUri == null) {
+            bitmap = null
+            return@LaunchedEffect
+        }
+        if (imageUri.scheme == "http" || imageUri.scheme == "https") {
+            // Load remote image asynchronously in background
+            kotlin.runCatching {
+                withContext(Dispatchers.IO) {
+                    val url = java.net.URL(imageUri.toString())
+                    val connection = url.openConnection() as java.net.HttpURLConnection
+                    connection.doInput = true
+                    connection.connect()
+                    val input = connection.inputStream
+                    BitmapFactory.decodeStream(input)
                 }
-            } catch (e: Exception) {
-                null
+            }.onSuccess {
+                bitmap = it
+            }
+        } else {
+            // Load local image Uri safely in background
+            kotlin.runCatching {
+                withContext(Dispatchers.IO) {
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+                        val source = ImageDecoder.createSource(context.contentResolver, imageUri)
+                        ImageDecoder.decodeBitmap(source)
+                    } else {
+                        @Suppress("DEPRECATION")
+                        MediaStore.Images.Media.getBitmap(context.contentResolver, imageUri)
+                    }
+                }
+            }.onSuccess {
+                bitmap = it
             }
         }
     }
@@ -760,7 +854,7 @@ private fun UploadSlot(
         if (bitmap != null) {
             Box(modifier = Modifier.fillMaxSize()) {
                 Image(
-                    bitmap = bitmap.asImageBitmap(),
+                    bitmap = bitmap!!.asImageBitmap(),
                     contentDescription = null,
                     contentScale = ContentScale.Crop,
                     modifier = Modifier.fillMaxSize()

@@ -1,5 +1,6 @@
 package com.turkcell.rencar_pair.data.repository
 
+import com.turkcell.rencar_pair.data.local.TokenManager
 import com.turkcell.rencar_pair.data.model.*
 import com.turkcell.rencar_pair.data.remote.AuthService
 import com.turkcell.rencar_pair.data.remote.LicenseService
@@ -12,7 +13,8 @@ import javax.inject.Singleton
 @Singleton
 class LicenseRepositoryImpl @Inject constructor(
     private val licenseService: LicenseService,
-    private val authService: AuthService
+    private val authService: AuthService,
+    private val tokenManager: TokenManager
 ) : LicenseRepository {
 
     override suspend fun uploadLicense(
@@ -89,5 +91,17 @@ class LicenseRepositoryImpl @Inject constructor(
         } catch (e: Exception) {
             Result.failure(e)
         }
+    }
+
+    override fun saveLicenseId(id: String) {
+        tokenManager.saveLicenseId(id)
+    }
+
+    override fun getLicenseId(): String? {
+        return tokenManager.getLicenseId()
+    }
+
+    override fun clearLicenseId() {
+        tokenManager.clearLicenseId()
     }
 }
