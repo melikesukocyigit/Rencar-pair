@@ -564,7 +564,7 @@ private fun StepperHeader(currentStep: LicenseStep) {
     Row(
         modifier = Modifier.fillMaxWidth(),
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.SpaceBetween
+        horizontalArrangement = Arrangement.spacedBy(6.dp)
     ) {
         StepItem(
             number = 1,
@@ -598,7 +598,7 @@ private fun StepItem(
 ) {
     Row(
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(8.dp)
+        horizontalArrangement = Arrangement.spacedBy(6.dp)
     ) {
         Box(
             modifier = Modifier
@@ -608,7 +608,7 @@ private fun StepItem(
                     when {
                         isCompleted -> SuccessDefault
                         isActive -> Primary
-                        else -> MaterialTheme.colorScheme.outline.copy(alpha = 0.2f)
+                        else -> if (isSystemInDarkTheme()) Color(0xFF222A33) else Color(0xFFE3E8EF)
                     }
                 ),
             contentAlignment = Alignment.Center
@@ -623,7 +623,7 @@ private fun StepItem(
             } else {
                 Text(
                     text = number.toString(),
-                    color = if (isActive) Color.White else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
+                    color = if (isActive) Color.White else if (isSystemInDarkTheme()) Color(0xFF7A828F) else Color(0xFF8A929E),
                     style = labelS,
                     fontWeight = FontWeight.Bold
                 )
@@ -633,7 +633,11 @@ private fun StepItem(
             text = title,
             style = labelS,
             fontWeight = if (isActive) FontWeight.Bold else FontWeight.Medium,
-            color = if (isActive) MaterialTheme.colorScheme.onBackground else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
+            color = if (isActive) {
+                if (isSystemInDarkTheme()) Color(0xFFF3F6FA) else Color(0xFF101620)
+            } else {
+                if (isSystemInDarkTheme()) Color(0xFF7A828F) else Color(0xFF8A929E)
+            }
         )
     }
 }
@@ -644,8 +648,9 @@ private fun RowScope.StepDivider() {
         modifier = Modifier
             .weight(1f)
             .height(2.dp)
-            .padding(horizontal = 8.dp)
-            .background(MaterialTheme.colorScheme.outline.copy(alpha = 0.4f))
+            .background(
+                if (isSystemInDarkTheme()) Color(0xFF2C333D) else Color(0xFFE0E5EC)
+            )
     )
 }
 
