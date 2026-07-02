@@ -19,11 +19,12 @@ class AuthRepositoryImpl @Inject constructor(
         if (!response.isSuccessful) error(response.apiMessage())
     }
 
-    override suspend fun verifyOtp(phone: String, code: String): Result<Unit> = runCatching {
+    override suspend fun verifyOtp(phone: String, code: String): Result<String> = runCatching {
         val response = authService.verifyOtp(VerifyOtpDto(phone = phone, code = code))
         if (!response.isSuccessful) error(response.apiMessage())
         val body = response.body() ?: error("Sunucudan gecersiz yanit.")
         tokenManager.saveTokens(body.accessToken, body.refreshToken)
+        body.user.role
     }
 
     override suspend fun register(

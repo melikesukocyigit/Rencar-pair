@@ -55,9 +55,9 @@ class OtpViewModel @Inject constructor(
             val result = authRepository.verifyOtp("+90${state.phone}", state.otpCode)
             _uiState.update { it.copy(isLoading = false) }
             result
-                .onSuccess {
+                .onSuccess { role ->
                     _effect.send(OtpEffect.ShowSuccess("Giris basarili!"))
-                    _effect.send(OtpEffect.NavigateToHome)
+                    _effect.send(OtpEffect.NavigateToHome(role))
                 }
                 .onFailure { _effect.send(OtpEffect.ShowError(it.message ?: "Dogrulama basarisiz.")) }
         }

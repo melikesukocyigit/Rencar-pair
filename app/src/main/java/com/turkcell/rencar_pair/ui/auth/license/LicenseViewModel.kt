@@ -1,0 +1,183 @@
+package com.turkcell.rencar_pair.ui.auth.license
+
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
+import com.turkcell.rencar_pair.data.repository.LicenseRepository
+import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.receiveAsFlow
+import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.launch
+import javax.inject.Inject
+
+@HiltViewModel
+class LicenseViewModel @Inject constructor(
+    private val licenseRepository: LicenseRepository
+) : ViewModel() {
+
+    private val _uiState = MutableStateFlow(LicenseUiState())
+    val uiState: StateFlow<LicenseUiState> = _uiState.asStateFlow()
+
+    private val _effect = Channel<LicenseEffect>(Channel.BUFFERED)
+    val effect: Flow<LicenseEffect> = _effect.receiveAsFlow()
+
+    init {
+        checkLicenseStatus()
+    }
+
+    fun onIntent(intent: LicenseIntent) {
+        when (intent) {
+            is LicenseIntent.FrontImageSelected -> updateState { it.copy(frontImageUri = intent.uri) }
+            is LicenseIntent.BackImageSelected -> updateState { it.copy(backImageUri = intent.uri) }
+            is LicenseIntent.SelfieImageSelected -> updateState { it.copy(selfieImageUri = intent.uri) }
+            is LicenseIntent.NextStepClicked -> handleNextStep()
+            is LicenseIntent.BackStepClicked -> handleBackStep()
+            is LicenseIntent.Submit -> submit(intent.frontBytes, intent.backBytes)
+            is LicenseIntent.TriggerAutoApprove -> triggerAutoApprove()
+            is LicenseIntent.RefreshStatus -> checkLicenseStatus()
+        }
+    }
+
+    private fun updateState(transform: (LicenseUiState) -> LicenseUiState) {
+        _uiState.update { current ->
+            val updated = transform(current)
+            val isEnabled = when (updated.currentStep) {
+                LicenseStep.EHLIYET -> updated.frontImageUri != null && updated.backImageUri != null
+                LicenseStep.SELFIE -> updated.selfieImageUri != null
+                LicenseStep.ONAY -> updated.status == "APPROVED"
+            }
+            updated.copy(isSubmitEnabled = isEnabled)
+        }
+    }
+
+    private fun handleNextStep() {
+        val current = _uiState.value
+        when (current.currentStep) {
+            LicenseStep.EHLIYET -> {
+                if (current.frontImageUri != null && current.backImageUri != null) {
+                    updateState { it.copy(currentStep = LicenseStep.SELFIE) }
+                }
+            }
+            LicenseStep.SELFIE -> {
+                // Submit intent should be dispatched instead because it requires byte arrays
+            }
+            LicenseStep.ONAY -> {
+                if (current.status == "APPROVED") {
+                    viewModelScope.launch {
+                        _effect.send(LicenseEffect.NavigateToNext)
+                    }
+                }
+            }
+        }
+    }
+
+    private fun handleBackStep() {
+        val current = _uiState.value
+        when (current.currentStep) {
+            LicenseStep.SELFIE -> updateState { it.copy(currentStep = LicenseStep.EHLIYET) }
+            LicenseStep.ONAY -> {
+                if (current.status == "REJECTED") {
+                    // Reset everything to let them re-submit
+                    updateState {
+                        it.copy(
+                            currentStep = LicenseStep.EHLIYET,
+                            frontImageUri = null,
+                            backImageUri = null,
+                            selfieImageUri = null,
+                            status = "NOT_SUBMITTED"
+                        )
+                    }
+                } else if (current.status != "APPROVED") {
+                    updateState { it.copy(currentStep = LicenseStep.SELFIE) }
+                }
+            }
+            LicenseStep.EHLIYET -> {
+                // Handled in UI navigation back
+            }
+        }
+    }
+
+    private fun checkLicenseStatus() {
+        viewModelScope.launch {
+            _uiState.update { it.copy(isLoading = true) }
+            licenseRepository.getLicenseStatus()
+                .onSuccess { response ->
+                    _uiState.update {
+                        it.copy(
+                            isLoading = false,
+                            status = response.status
+                        )
+                    }
+                    if (response.status == "APPROVED" || response.status == "UNDER_REVIEW" || response.status == "REJECTED") {
+                        updateState { it.copy(currentStep = LicenseStep.ONAY) }
+                        // If it's under review, dynamically fetch the licenseId for the debug button
+                        if (response.status == "UNDER_REVIEW") {
+                            fetchMyLicenseId()
+                        }
+                    }
+                }
+                .onFailure { error ->
+                    _uiState.update { it.copy(isLoading = false) }
+                    _effect.send(LicenseEffect.ShowError(error.message ?: "Durum sorgulanamadı."))
+                }
+        }
+    }
+
+    private fun fetchMyLicenseId() {
+        viewModelScope.launch {
+            licenseRepository.getMyLicenseId().onSuccess { id ->
+                _uiState.update { it.copy(licenseId = id) }
+            }
+        }
+    }
+
+    private fun submit(frontBytes: ByteArray, backBytes: ByteArray) {
+        val state = _uiState.value
+        if (state.isLoading) return
+
+        viewModelScope.launch {
+            _uiState.update { it.copy(isLoading = true) }
+            licenseRepository.uploadLicense(frontBytes, backBytes)
+                .onSuccess { response ->
+                    _uiState.update {
+                        it.copy(
+                            isLoading = false,
+                            status = response.status,
+                            licenseId = response.id,
+                            currentStep = LicenseStep.ONAY
+                        )
+                    }
+                    updateState { it } // Re-evaluate submit button state
+                }
+                .onFailure { error ->
+                    _uiState.update { it.copy(isLoading = false) }
+                    _effect.send(LicenseEffect.ShowError(error.message ?: "Ehliyet yükleme başarısız."))
+                }
+        }
+    }
+
+    private fun triggerAutoApprove() {
+        val id = _uiState.value.licenseId ?: return
+        viewModelScope.launch {
+            _uiState.update { it.copy(isLoading = true) }
+            licenseRepository.adminApproveLicense(id)
+                .onSuccess { response ->
+                    _uiState.update {
+                        it.copy(
+                            isLoading = false,
+                            status = response.status
+                        )
+                    }
+                    updateState { it } // Re-evaluate state
+                }
+                .onFailure { error ->
+                    _uiState.update { it.copy(isLoading = false) }
+                    _effect.send(LicenseEffect.ShowError(error.message ?: "Otomatik onaylama başarısız."))
+                }
+        }
+    }
+}

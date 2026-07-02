@@ -8,6 +8,7 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
+import com.turkcell.rencar_pair.ui.auth.license.LicenseRoute
 import com.turkcell.rencar_pair.ui.auth.login.LoginRoute
 import com.turkcell.rencar_pair.ui.auth.otp.OtpRoute
 import com.turkcell.rencar_pair.ui.auth.register.RegisterRoute
@@ -17,6 +18,7 @@ private const val ROUTE_ONBOARDING = "onboarding"
 private const val ROUTE_LOGIN      = "login"
 private const val ROUTE_OTP        = "otp"
 private const val ROUTE_REGISTER   = "register"
+private const val ROUTE_LICENSE    = "license"
 
 @Composable
 fun RencarNavHost(
@@ -48,8 +50,9 @@ fun RencarNavHost(
             arguments = listOf(navArgument("phone") { type = NavType.StringType }),
         ) {
             OtpRoute(
-                onNavigateToHome = {
-                    navController.navigate(ROUTE_ONBOARDING) {
+                onNavigateToHome = { role ->
+                    val destination = if (role == "PENDING") ROUTE_LICENSE else ROUTE_ONBOARDING
+                    navController.navigate(destination) {
                         popUpTo(0) { inclusive = true }
                     }
                 },
@@ -66,5 +69,17 @@ fun RencarNavHost(
                 onBack            = { navController.popBackStack() },
             )
         }
+
+        composable(ROUTE_LICENSE) {
+            LicenseRoute(
+                onNavigateToNext = {
+                    navController.navigate(ROUTE_ONBOARDING) {
+                        popUpTo(0) { inclusive = true }
+                    }
+                },
+                onBack = { navController.popBackStack() }
+            )
+        }
     }
 }
+
