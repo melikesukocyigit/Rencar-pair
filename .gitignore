@@ -13,3 +13,7 @@
 .externalNativeBuild
 .cxx
 local.properties
+
+# Local temporary and documentation files
+rencar.html
+*.pdf
