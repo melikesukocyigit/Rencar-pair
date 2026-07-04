@@ -1,7 +1,13 @@
 package com.turkcell.rencar_pair.ui.navigation
 
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.font.FontWeight
 import androidx.navigation.NavHostController
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
@@ -16,6 +22,9 @@ import com.turkcell.rencar_pair.ui.auth.register.RegisterRoute
 import com.turkcell.rencar_pair.ui.home.HomeScreen
 import com.turkcell.rencar_pair.ui.onboarding.OnboardingRoute
 import com.turkcell.rencar_pair.ui.splash.SplashRoute
+import com.turkcell.rencar_pair.ui.theme.bodyM
+import com.turkcell.rencar_pair.ui.theme.headingXL
+import com.turkcell.rencar_pair.ui.wallet.WalletRoute
 
 private const val ROUTE_SPLASH     = "splash"
 private const val ROUTE_ONBOARDING = "onboarding"
@@ -24,6 +33,9 @@ private const val ROUTE_OTP        = "otp"
 private const val ROUTE_REGISTER   = "register"
 private const val ROUTE_LICENSE    = "license"
 private const val ROUTE_HOME       = "home"
+private const val ROUTE_WALLET     = "wallet"
+private const val ROUTE_HISTORY    = "history"
+private const val ROUTE_PROFILE    = "profile"
 
 @Composable
 fun RencarNavHost(
@@ -31,6 +43,21 @@ fun RencarNavHost(
     modifier: Modifier = Modifier,
     navController: NavHostController = rememberNavController(),
 ) {
+    val handleTabNavigation: (NavigationTab) -> Unit = { tab ->
+        val targetRoute = when (tab) {
+            NavigationTab.HARITA -> ROUTE_HOME
+            NavigationTab.GECMIS -> ROUTE_HISTORY
+            NavigationTab.CUZDAN -> ROUTE_WALLET
+            NavigationTab.PROFIL -> ROUTE_PROFILE
+        }
+        navController.navigate(targetRoute) {
+            // Keep the state of the tabs and avoid multiple instances
+            popUpTo(ROUTE_HOME) { saveState = true }
+            launchSingleTop = true
+            restoreState = true
+        }
+    }
+
     NavHost(
         navController = navController,
         startDestination = ROUTE_SPLASH,
@@ -106,7 +133,69 @@ fun RencarNavHost(
                     navController.navigate(ROUTE_ONBOARDING) {
                         popUpTo(0) { inclusive = true }
                     }
-                }
+                },
+                onTabSelected = handleTabNavigation
+            )
+        }
+
+        composable(ROUTE_WALLET) {
+            WalletRoute(
+                onBack = {
+                    navController.popBackStack()
+                },
+                onTabSelected = handleTabNavigation
+            )
+        }
+
+        composable(ROUTE_HISTORY) {
+            PlaceholderScreen(
+                title = "Geçmiş",
+                tab = NavigationTab.GECMIS,
+                onTabSelected = handleTabNavigation
+            )
+        }
+
+        composable(ROUTE_PROFILE) {
+            PlaceholderScreen(
+                title = "Profil",
+                tab = NavigationTab.PROFIL,
+                onTabSelected = handleTabNavigation
+            )
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun PlaceholderScreen(
+    title: String,
+    tab: NavigationTab,
+    onTabSelected: (NavigationTab) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                title = { Text(title, style = headingXL, fontWeight = FontWeight.Bold) },
+                colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.background)
+            )
+        },
+        bottomBar = {
+            RencarBottomNavigation(selectedTab = tab, onTabSelected = onTabSelected)
+        },
+        containerColor = MaterialTheme.colorScheme.background,
+        modifier = modifier
+    ) { paddingValues ->
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(paddingValues),
+            contentAlignment = Alignment.Center
+        ) {
+            Text(
+                text = "$title ekranı yakında eklenecektir.",
+                style = bodyM,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
             )
         }
     }
