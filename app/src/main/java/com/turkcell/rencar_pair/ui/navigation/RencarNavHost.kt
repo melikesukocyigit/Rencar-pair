@@ -24,6 +24,7 @@ import com.turkcell.rencar_pair.ui.onboarding.OnboardingRoute
 import com.turkcell.rencar_pair.ui.splash.SplashRoute
 import com.turkcell.rencar_pair.ui.theme.bodyM
 import com.turkcell.rencar_pair.ui.theme.headingXL
+import com.turkcell.rencar_pair.ui.profile.ProfileRoute
 import com.turkcell.rencar_pair.ui.wallet.WalletRoute
 
 private const val ROUTE_SPLASH     = "splash"
@@ -156,10 +157,13 @@ fun RencarNavHost(
         }
 
         composable(ROUTE_PROFILE) {
-            PlaceholderScreen(
-                title = "Profil",
-                tab = NavigationTab.PROFIL,
-                onTabSelected = handleTabNavigation
+            ProfileRoute(
+                onNavigateToOnboarding = {
+                    navController.navigate(ROUTE_ONBOARDING) {
+                        popUpTo(0) { inclusive = true }
+                    }
+                },
+                onTabSelected = handleTabNavigation,
             )
         }
     }
