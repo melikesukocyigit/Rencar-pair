@@ -23,6 +23,8 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.turkcell.rencar_pair.data.local.TokenManager
+import com.turkcell.rencar_pair.ui.navigation.NavigationTab
+import com.turkcell.rencar_pair.ui.navigation.RencarBottomNavigation
 import com.turkcell.rencar_pair.ui.theme.Primary
 import com.turkcell.rencar_pair.ui.theme.SuccessDefault
 import com.turkcell.rencar_pair.ui.theme.bodyM
@@ -31,6 +33,7 @@ import com.turkcell.rencar_pair.ui.theme.headingL
 import com.turkcell.rencar_pair.ui.theme.labelM
 import com.turkcell.rencar_pair.ui.theme.titleL
 import com.turkcell.rencar_pair.ui.theme.titleM
+import com.turkcell.rencar_pair.ui.theme.titleS
 
 data class MockVehicle(
     val brand: String,
@@ -45,6 +48,7 @@ data class MockVehicle(
 fun HomeScreen(
     tokenManager: TokenManager,
     onLogout: () -> Unit,
+    onTabSelected: (NavigationTab) -> Unit,
     modifier: Modifier = Modifier
 ) {
     val mockVehicles = listOf(
@@ -108,6 +112,12 @@ fun HomeScreen(
                 colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = MaterialTheme.colorScheme.background
                 )
+            )
+        },
+        bottomBar = {
+            RencarBottomNavigation(
+                selectedTab = NavigationTab.HARITA,
+                onTabSelected = onTabSelected
             )
         },
         containerColor = MaterialTheme.colorScheme.background,
