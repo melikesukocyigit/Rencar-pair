@@ -3,6 +3,7 @@ package com.turkcell.rencar_pair.data.repository
 import com.turkcell.rencar_pair.data.local.TokenManager
 import com.turkcell.rencar_pair.data.model.LoginDto
 import com.turkcell.rencar_pair.data.model.RegisterDto
+import com.turkcell.rencar_pair.data.model.UserResponseDto
 import com.turkcell.rencar_pair.data.model.VerifyOtpDto
 import com.turkcell.rencar_pair.data.remote.AuthService
 import org.json.JSONObject
@@ -24,6 +25,11 @@ class AuthRepositoryImpl @Inject constructor(
         if (!response.isSuccessful) error(response.apiMessage())
         val body = response.body() ?: error("Sunucudan gecersiz yanit.")
         tokenManager.saveTokens(body.accessToken, body.refreshToken)
+        // Cache profile immediately so ProfileScreen loads instantly before API call
+        tokenManager.saveUserProfile(
+            name  = body.user.fullName,
+            phone = body.user.phone ?: phone,
+        )
         body.user.role
     }
 
@@ -37,8 +43,19 @@ class AuthRepositoryImpl @Inject constructor(
         if (!response.isSuccessful) error(response.apiMessage())
     }
 
-    // API hata body'sindeki "message" alanini parse eder.
-    // response.message() bazi HTTP kodlarinda bos string donebilir; bu fonksiyon bunu onler.
+    override suspend fun getMe(): Result<UserResponseDto> = runCatching {
+        val response = authService.getMe()
+        if (!response.isSuccessful) error(response.apiMessage())
+        val body = response.body() ?: error("Sunucudan gecersiz yanit.")
+        // Refresh local cache with latest server data
+        tokenManager.saveUserProfile(
+            name  = body.fullName,
+            phone = body.phone ?: tokenManager.getUserPhone(),
+        )
+        body
+    }
+
+    // Parses the "message" field from the API error body.
     private fun Response<*>.apiMessage(): String {
         val bodyString = errorBody()?.string()
         if (!bodyString.isNullOrBlank()) {

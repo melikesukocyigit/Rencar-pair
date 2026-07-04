@@ -41,8 +41,8 @@ class OtpViewModel @Inject constructor(
             is OtpIntent.OtpCodeChanged -> _uiState.update {
                 it.copy(otpCode = intent.value.filter(Char::isDigit).take(6))
             }
-            is OtpIntent.Submit -> submit()
-            is OtpIntent.ResendCode -> resendCode()
+            is OtpIntent.Submit      -> submit()
+            is OtpIntent.ResendCode  -> resendCode()
             is OtpIntent.ChangePhone -> viewModelScope.launch { _effect.send(OtpEffect.NavigateBack) }
         }
     }
@@ -52,6 +52,7 @@ class OtpViewModel @Inject constructor(
         if (!state.isSubmitEnabled) return
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true) }
+            // AuthRepositoryImpl already caches fullName+phone into TokenManager on success
             val result = authRepository.verifyOtp("+90${state.phone}", state.otpCode)
             _uiState.update { it.copy(isLoading = false) }
             result
