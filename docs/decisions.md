@@ -195,7 +195,7 @@
 
 - Fiyat: Tasarımdaki uydurma "Saatlik ₺180" satırı **eklenmedi** — gerçek backend saatlik/dakikalık fatura desteklemiyor, yanıltıcı olurdu. Yalnızca gerçek `pricePerDay` gösteriliyor.
 
-- "Rezerve Et" / "Kilidi Aç" butonları henüz no-op; gerçek `POST /rentals` akışı (bitiş tarihi seçimi, onay) ayrı bir adımda ele alınacak.
+- "Rezerve Et" / "Kilidi Aç" butonları henüz no-op; gerçek `POST /rentals` akışı (bitiş tarihi seçimi, onay) ayrı bir adımda ele alınacak. **Güncelleme (05.07.2026):** "Rezerve Et" artık no-op değil; bkz. "Rezervasyon Onayı Ekranı" kararı. "Kilidi Aç" hâlâ no-op.
 
 
 ### Ana Harita Ekranı — Çıkış Butonu Kaldırıldı
@@ -222,3 +222,20 @@
 - Canlı Konum: `enableLocationComponent`, `LocationEngineRequest` üzerinden `locationComponent.locationEngine?.requestLocationUpdates(...)` ile her yeni GPS konumunda `onLocationUpdate` callback'ini tetikler; `HomeRoute` bunu `HomeIntent.UserLocationChanged` olarak ViewModel'e iletir. Yeni bağımlılık gerekmez, mevcut MapLibre location engine API'si kullanılır.
 
 - Son Bilinen Konum Fallback'i (05.07.2026): Yalnızca `requestLocationUpdates` ile yeni bir GPS fix'i beklemek, sistemde önbelleğe alınmış bir son konum olsa bile (ör. konum servisleri yeni bir fix üretmediği cihaz/emülatör durumlarında) arayüzün süresiz olarak "Konumunuz aranıyor..." demesine yol açıyordu. Bu nedenle `enableLocationComponent` artık aktivasyon sonrası önce `locationEngine.getLastLocation(...)` ile sistemde var olan son bilinen konumu anında kullanıyor, ardından `requestLocationUpdates` ile canlı güncellemeleri dinlemeye devam ediyor. `LocationEngine` arayüzünde zaten mevcut olan bir metottur, yeni bağımlılık gerekmez.
+
+
+### Rezervasyon Onayı Ekranı
+
+- Karar: Tasarımdaki "Rezervasyon Onayı" ekranı `ui/reservation/` altında MVI ile uygulandı (`ReservationContract.kt`, `ReservationViewModel.kt`, `ReservationScreen.kt`). Ana Harita'daki araç detay sheet'inde "Rezerve Et" butonu artık bu ekrana yönlendiriyor; `HomeRoute`'a eklenen `onNavigateToReservation` parametresi seçili aracın `vehicleId`, `brand`, `model`, `plate`, `pricePerDay` bilgilerini `RencarNavHost` üzerinden nav-arg olarak taşıyor (OTP ekranının `phone` nav-arg deseniyle birebir aynı: `"reservation/{vehicleId}/{brand}/{model}/{plate}/{pricePerDay}"`, `ReservationViewModel` bunları `SavedStateHandle` ile okuyor). Araç zaten Ana Harita'nın `GET /vehicles` çağrısından bellekte olduğundan ayrı bir "getVehicleById" çağrısı yapılmadı.
+
+- Son Güncelleme Tarihi: 05.07.2026
+
+- Veri Katmanı: Daha önce yalnızca Retrofit katmanında tanımlı olup hiçbir yerden çağrılmayan `RentalService`/`CreateRentalDto`/`RentalResponseDto` kullanılarak `data/repository/RentalRepository.kt` (arayüz) + `RentalRepositoryImpl.kt` eklendi; `di/RentalModule.kt` ile `@Binds` bağlandı (`VehicleRepository`/`AuthRepository` ile birebir aynı desen).
+
+- Kaldırılan Tasarım Öğeleri (Kullanıcı Onayıyla): Tasarımdaki "Ücretsiz rezervasyon: 15 dk" ve "Başlangıç ücreti: ₺15,00" satırları **eklenmedi** — `VehicleResponseDto`'da bu kavramların hiçbir karşılığı yok (uydurma olurdu, agents.md §2.2). Yalnızca gerçek `pricePerDay`'den orantılı türetilmiş Dakikalık/Saatlik/Günlük fiyatlar ve seçilen plana göre tahmini ücret gösteriliyor (VehicleDetailBottomSheet'teki dakikalık/saatlik türetme ile aynı yaklaşım).
+
+- Bitiş Tarihi (endDate) Kuralı (Kullanıcı Onayıyla): Tasarımda bir bitiş tarihi/saat seçici olmadığından, `POST /rentals`'ın zorunlu `endDate` alanı seçilen plana göre otomatik hesaplanıyor: Dakikalık → +30 dk, Saatlik → +1 saat, Günlük → +1 gün (`ReservationViewModel.endDateFor`). Gerçek bitiş, kullanıcı aracı iade ettiğinde (`POST /rentals/{id}/return`, henüz UI'da yok) belirlenecek. Tarih hesaplaması `java.util.Calendar` + `SimpleDateFormat` ile yapılıyor; `java.time` kullanılmadı çünkü minSdk 24'te core library desugaring olmadan çalışmıyor ve bu adımda desugaring eklenmedi.
+
+- Placeholder Alanlar: Yakıt yüzdesi, vites tipi ve koltuk sayısı için `VehicleDetailBottomSheet` ile aynı onaylanmış placeholder değerler (`PLACEHOLDER_FUEL_PERCENT=72`, `PLACEHOLDER_TRANSMISSION="Manuel"`, `PLACEHOLDER_SEAT_COUNT=5`) tekrar kullanıldı; yeni bir onay gerekmedi.
+
+- Placeholder Fotoğraf: Araç fotoğrafı, `HomeScreen.kt`'deki `VehiclePhoto` ile aynı `car_{marka}_{model}` kaynak adı kuralına göre çözümleniyor.

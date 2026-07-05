@@ -25,6 +25,7 @@ import com.turkcell.rencar_pair.ui.splash.SplashRoute
 import com.turkcell.rencar_pair.ui.theme.bodyM
 import com.turkcell.rencar_pair.ui.theme.headingXL
 import com.turkcell.rencar_pair.ui.profile.ProfileRoute
+import com.turkcell.rencar_pair.ui.reservation.ReservationRoute
 import com.turkcell.rencar_pair.ui.wallet.WalletRoute
 
 private const val ROUTE_SPLASH     = "splash"
@@ -37,6 +38,7 @@ private const val ROUTE_HOME       = "home"
 private const val ROUTE_WALLET     = "wallet"
 private const val ROUTE_HISTORY    = "history"
 private const val ROUTE_PROFILE    = "profile"
+private const val ROUTE_RESERVATION = "reservation"
 
 @Composable
 fun RencarNavHost(
@@ -129,7 +131,27 @@ fun RencarNavHost(
 
         composable(ROUTE_HOME) {
             HomeRoute(
-                onTabSelected = handleTabNavigation
+                onTabSelected = handleTabNavigation,
+                onNavigateToReservation = { vehicleId, brand, model, plate, pricePerDay ->
+                    navController.navigate(
+                        "$ROUTE_RESERVATION/$vehicleId/$brand/$model/$plate/$pricePerDay",
+                    )
+                },
+            )
+        }
+
+        composable(
+            route = "$ROUTE_RESERVATION/{vehicleId}/{brand}/{model}/{plate}/{pricePerDay}",
+            arguments = listOf(
+                navArgument("vehicleId") { type = NavType.StringType },
+                navArgument("brand") { type = NavType.StringType },
+                navArgument("model") { type = NavType.StringType },
+                navArgument("plate") { type = NavType.StringType },
+                navArgument("pricePerDay") { type = NavType.StringType },
+            ),
+        ) {
+            ReservationRoute(
+                onBack = { navController.popBackStack() },
             )
         }
 
