@@ -71,6 +71,14 @@ private const val PLACEHOLDER_SEAT_COUNT = 5
 @Composable
 fun ReservationRoute(
     onBack: () -> Unit,
+    onNavigateToVehicleCondition: (
+        rentalId: String,
+        vehicleId: String,
+        brand: String,
+        model: String,
+        plate: String,
+        pricePerDay: Double,
+    ) -> Unit,
     modifier: Modifier = Modifier,
     viewModel: ReservationViewModel = hiltViewModel(),
 ) {
@@ -80,10 +88,15 @@ fun ReservationRoute(
     LaunchedEffect(Unit) {
         viewModel.effect.collect { effect ->
             when (effect) {
-                is ReservationEffect.ShowSuccessAndNavigateBack -> {
-                    snackbarHostState.showSnackbar(effect.message)
-                    onBack()
-                }
+                is ReservationEffect.NavigateToVehicleCondition ->
+                    onNavigateToVehicleCondition(
+                        effect.rentalId,
+                        effect.vehicleId,
+                        effect.brand,
+                        effect.model,
+                        effect.plate,
+                        effect.pricePerDay,
+                    )
                 is ReservationEffect.ShowError -> snackbarHostState.showSnackbar(effect.message)
             }
         }

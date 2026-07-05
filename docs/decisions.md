@@ -239,3 +239,16 @@
 - Placeholder Alanlar: Yakıt yüzdesi, vites tipi ve koltuk sayısı için `VehicleDetailBottomSheet` ile aynı onaylanmış placeholder değerler (`PLACEHOLDER_FUEL_PERCENT=72`, `PLACEHOLDER_TRANSMISSION="Manuel"`, `PLACEHOLDER_SEAT_COUNT=5`) tekrar kullanıldı; yeni bir onay gerekmedi.
 
 - Placeholder Fotoğraf: Araç fotoğrafı, `HomeScreen.kt`'deki `VehiclePhoto` ile aynı `car_{marka}_{model}` kaynak adı kuralına göre çözümleniyor.
+
+
+### Araç Durumu Ekranı (Kiralama Öncesi Kontrol)
+
+- Karar: Rezervasyon akışının devamı olarak `ui/vehiclecondition/` altında yeni bir ekran eklendi (`VehicleConditionContract.kt`, `VehicleConditionViewModel.kt`, `VehicleConditionScreen.kt`). Rezervasyon Onayı ekranında "Rezervasyonu Tamamla" başarılı olunca (`POST /rentals` başarılı), önceki davranış olan "Home'a dön + başarı snackbar'ı" yerine artık doğrudan bu Araç Durumu ekranına geçiliyor; `ReservationEffect.NavigateToVehicleCondition` gerçek `rentalId`'yi (`RentalResponseDto.id`) ve araç bilgilerini taşıyor.
+
+- Son Güncelleme Tarihi: 06.07.2026
+
+- Fotoğraf Çekimi (Mock, Kullanıcı Onayıyla): Gerçek kamera/galeri entegrasyonu bu adımda YAPILMADI — kullanıcının açık isteğiyle, 4 yön kartından (Ön/Arka/Sol/Sağ) birine dokunulduğunda gerçek bir fotoğraf çekilmeden o yön anında "çekildi" (yeşil onay) olarak işaretleniyor. Bu bilinçli bir mock'tur; gerçek kamera akışı (ör. CameraX + dosya/URI saklama) ayrı bir adımda ele alınacak.
+
+- Akış: 4 yönün tamamı işaretlenmeden "Kiralamayı Başlat" butonu pasif kalıyor (buton etiketinde kalan foto sayısı gösteriliyor). Bu ekranda backend'e herhangi bir çağrı yapılmıyor — kiralama zaten `POST /rentals` ile Rezervasyon adımında oluşturulmuş durumda (`RentalResponseDto.status` sunucuda zaten ACTIVE); bu ekran yalnızca istemci tarafında bir "hazır mısın" kontrolü.
+
+- Geçici Uç Nokta (Sıradaki Adımda Değişecek): "Kiralamayı Başlat" butonu şu an "Kiralama Aktif" (canlı yolculuk) ekranına gitmiyor — o ekran henüz yapılmadı. Bunun yerine geçici olarak bir bilgi snackbar'ı gösterip bir önceki ekrana (Home) dönüyor. Bu, "Rezerve Et"in gerçek ekrana bağlanana kadar no-op kalması ile aynı geçici desendir; bir sonraki adımda `VehicleConditionEffect.NavigateToActiveRental` gerçek "Kiralama Aktif" rotasına bağlanacak.
