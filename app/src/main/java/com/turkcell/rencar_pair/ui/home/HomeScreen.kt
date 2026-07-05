@@ -7,6 +7,8 @@ import android.graphics.Bitmap
 import android.graphics.Canvas
 import android.graphics.Paint
 import android.graphics.RectF
+import android.location.Location
+import android.os.Looper
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.Image
@@ -124,7 +126,9 @@ import org.maplibre.android.camera.CameraUpdateFactory
 import org.maplibre.android.geometry.LatLng as MapLibreLatLng
 import org.maplibre.android.geometry.LatLngBounds
 import org.maplibre.android.location.LocationComponentActivationOptions
+import org.maplibre.android.location.engine.LocationEngineCallback
 import org.maplibre.android.location.engine.LocationEngineRequest
+import org.maplibre.android.location.engine.LocationEngineResult
 import org.maplibre.android.location.modes.CameraMode
 import org.maplibre.android.location.modes.RenderMode
 import org.maplibre.android.maps.MapLibreMap
@@ -190,6 +194,15 @@ fun HomeRoute(
                     map.locationComponent.setCameraMode(CameraMode.TRACKING)
                     map.locationComponent.zoomWhileTracking(15.0)
                 }
+                is HomeEffect.CenterOnLocation -> {
+                    val map = mapLibreMap ?: return@collect
+                    map.animateCamera(
+                        CameraUpdateFactory.newLatLngZoom(
+                            MapLibreLatLng(effect.location.latitude, effect.location.longitude),
+                            16.0,
+                        ),
+                    )
+                }
                 is HomeEffect.ShowError -> snackbarHostState.showSnackbar(effect.message)
             }
         }
@@ -198,7 +211,11 @@ fun HomeRoute(
     LaunchedEffect(uiState.hasLocationPermission, mapLibreMap) {
         val map = mapLibreMap ?: return@LaunchedEffect
         if (uiState.hasLocationPermission) {
-            enableLocationComponent(context, map)
+            enableLocationComponent(context, map) { location ->
+                viewModel.onIntent(
+                    HomeIntent.UserLocationChanged(LatLng(location.latitude, location.longitude)),
+                )
+            }
         }
     }
 
@@ -313,6 +330,9 @@ fun HomeScreen(
                     nearbyCount = state.visibleVehicles.size,
                     selectedFilter = state.selectedFilter,
                     onFilterSelected = { onIntent(HomeIntent.FilterSelected(it)) },
+                    hasLocationPermission = state.hasLocationPermission,
+                    nearestVehicleEtaMinutes = state.nearestVehicleEtaMinutes,
+                    onFindNearestVehicleClicked = { onIntent(HomeIntent.FindNearestVehicleClicked) },
                 )
             }
         }
@@ -784,6 +804,9 @@ private fun NearbyVehiclesCard(
     nearbyCount: Int,
     selectedFilter: CategoryFilter,
     onFilterSelected: (CategoryFilter) -> Unit,
+    hasLocationPermission: Boolean,
+    nearestVehicleEtaMinutes: Int?,
+    onFindNearestVehicleClicked: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val isDark = isDarkHome()
@@ -820,7 +843,11 @@ private fun NearbyVehiclesCard(
                     color = MaterialTheme.colorScheme.onSurface,
                 )
                 Text(
-                    text = "Kadıköy çevresinde · 3 dk uzaklıkta",
+                    text = when {
+                        nearestVehicleEtaMinutes != null -> "En yakın araç ~$nearestVehicleEtaMinutes dk uzaklıkta"
+                        hasLocationPermission -> "Konumunuz aranıyor…"
+                        else -> "Mesafe için konum izni gerekli"
+                    },
                     style = bodyS,
                     color = subtitleColor,
                 )
@@ -863,7 +890,7 @@ private fun NearbyVehiclesCard(
         Spacer(modifier = Modifier.height(16.dp))
 
         Button(
-            onClick = { /* TODO: arac detay ekrani henuz yok */ },
+            onClick = onFindNearestVehicleClicked,
             modifier = Modifier
                 .fillMaxWidth()
                 .height(56.dp),
@@ -959,14 +986,18 @@ private fun RencarMapView(
     )
 }
 
-private fun enableLocationComponent(context: Context, map: MapLibreMap) {
+private fun enableLocationComponent(
+    context: Context,
+    map: MapLibreMap,
+    onLocationUpdate: (Location) -> Unit,
+) {
     val style = map.style ?: return
     val locationComponent = map.locationComponent
+    val highAccuracyRequest = LocationEngineRequest.Builder(1000L)
+        .setPriority(LocationEngineRequest.PRIORITY_HIGH_ACCURACY)
+        .setFastestInterval(500L)
+        .build()
     if (!locationComponent.isLocationComponentActivated) {
-        val highAccuracyRequest = LocationEngineRequest.Builder(1000L)
-            .setPriority(LocationEngineRequest.PRIORITY_HIGH_ACCURACY)
-            .setFastestInterval(500L)
-            .build()
         locationComponent.activateLocationComponent(
             LocationComponentActivationOptions.builder(context, style)
                 .useDefaultLocationEngine(true)
@@ -976,6 +1007,20 @@ private fun enableLocationComponent(context: Context, map: MapLibreMap) {
     }
     locationComponent.isLocationComponentEnabled = true
     locationComponent.renderMode = RenderMode.NORMAL
+
+    // "En yakin araci bul" ve alt karttaki gercek mesafe/sure gosterimi icin canli
+    // kullanici konumu gerekiyor; bu callback her yeni GPS guncellemesinde tetiklenir.
+    locationComponent.locationEngine?.requestLocationUpdates(
+        highAccuracyRequest,
+        object : LocationEngineCallback<LocationEngineResult> {
+            override fun onSuccess(result: LocationEngineResult) {
+                result.lastLocation?.let(onLocationUpdate)
+            }
+
+            override fun onFailure(exception: Exception) = Unit
+        },
+        Looper.getMainLooper(),
+    )
 }
 
 private const val CAMERA_FIT_PADDING_DP = 56

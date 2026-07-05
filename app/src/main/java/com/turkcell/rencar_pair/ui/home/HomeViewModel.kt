@@ -84,6 +84,9 @@ class HomeViewModel @Inject constructor(
             is HomeIntent.LocationPermissionResult ->
                 _uiState.update { it.copy(hasLocationPermission = intent.granted) }
 
+            is HomeIntent.UserLocationChanged ->
+                _uiState.update { it.copy(userLocation = intent.location) }
+
             is HomeIntent.SearchQueryChanged ->
                 _uiState.update { it.copy(searchQuery = intent.query) }
 
@@ -94,6 +97,8 @@ class HomeViewModel @Inject constructor(
                 _uiState.update { it.copy(selectedVehicleId = null) }
 
             HomeIntent.LocateMeClicked -> locateMe()
+
+            HomeIntent.FindNearestVehicleClicked -> findNearestVehicle()
         }
     }
 
@@ -118,6 +123,21 @@ class HomeViewModel @Inject constructor(
         } else {
             sendEffect(HomeEffect.RequestLocationPermission)
         }
+    }
+
+    private fun findNearestVehicle() {
+        val state = _uiState.value
+        if (!state.hasLocationPermission) {
+            sendEffect(HomeEffect.RequestLocationPermission)
+            return
+        }
+        val nearest = state.nearestVehicle
+        if (nearest == null) {
+            sendEffect(HomeEffect.ShowError("Konumunuz henüz alınamadı, birazdan tekrar deneyin."))
+            return
+        }
+        _uiState.update { it.copy(selectedVehicleId = nearest.id) }
+        sendEffect(HomeEffect.CenterOnLocation(nearest.position))
     }
 
     private fun sendEffect(effect: HomeEffect) {
