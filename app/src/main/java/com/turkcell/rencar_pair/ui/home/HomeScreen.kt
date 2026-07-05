@@ -10,6 +10,7 @@ import android.graphics.RectF
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
@@ -26,16 +27,23 @@ import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.MyLocation
+import androidx.compose.material.icons.filled.Remove
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Tune
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
@@ -48,6 +56,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.compose.LocalLifecycleOwner
@@ -61,12 +70,21 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.turkcell.rencar_pair.BuildConfig
 import com.turkcell.rencar_pair.ui.navigation.NavigationTab
 import com.turkcell.rencar_pair.ui.navigation.RencarBottomNavigation
+import com.turkcell.rencar_pair.ui.theme.BackgroundLight
+import com.turkcell.rencar_pair.ui.theme.BorderStrongDark
 import com.turkcell.rencar_pair.ui.theme.CategoryEkonomik
 import com.turkcell.rencar_pair.ui.theme.CategoryKonfor
 import com.turkcell.rencar_pair.ui.theme.CategorySuv
+import com.turkcell.rencar_pair.ui.theme.CategoryKullanimdaLight
 import com.turkcell.rencar_pair.ui.theme.CategoryKullanımdaDark
 import com.turkcell.rencar_pair.ui.theme.Primary
+import com.turkcell.rencar_pair.ui.theme.PrimaryOnDark
+import com.turkcell.rencar_pair.ui.theme.SurfaceElevatedDark
+import com.turkcell.rencar_pair.ui.theme.SurfaceLight
+import com.turkcell.rencar_pair.ui.theme.TextHintDark
 import com.turkcell.rencar_pair.ui.theme.TextOnPrimary
+import com.turkcell.rencar_pair.ui.theme.TextSecondaryDark
+import com.turkcell.rencar_pair.ui.theme.TextTertiaryDark
 import com.turkcell.rencar_pair.ui.theme.bodyS
 import com.turkcell.rencar_pair.ui.theme.headingL
 import com.turkcell.rencar_pair.ui.theme.labelM
@@ -78,6 +96,8 @@ import org.maplibre.android.annotations.MarkerOptions
 import org.maplibre.android.camera.CameraUpdateFactory
 import org.maplibre.android.geometry.LatLng as MapLibreLatLng
 import org.maplibre.android.location.LocationComponentActivationOptions
+import org.maplibre.android.location.engine.LocationEngineRequest
+import org.maplibre.android.location.modes.CameraMode
 import org.maplibre.android.location.modes.RenderMode
 import org.maplibre.android.maps.MapLibreMap
 import org.maplibre.android.maps.MapView
@@ -96,6 +116,8 @@ fun HomeRoute(
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val context = LocalContext.current
     var mapLibreMap by remember { mutableStateOf<MapLibreMap?>(null) }
+    val snackbarHostState = remember { SnackbarHostState() }
+    val isDark = isDarkHome()
 
     val permissionLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.RequestMultiplePermissions(),
@@ -112,6 +134,13 @@ fun HomeRoute(
         ) == PackageManager.PERMISSION_GRANTED
         if (alreadyGranted) {
             viewModel.onIntent(HomeIntent.LocationPermissionResult(true))
+        } else {
+            permissionLauncher.launch(
+                arrayOf(
+                    Manifest.permission.ACCESS_FINE_LOCATION,
+                    Manifest.permission.ACCESS_COARSE_LOCATION,
+                ),
+            )
         }
     }
 
@@ -127,14 +156,14 @@ fun HomeRoute(
                 )
                 HomeEffect.CenterOnUserLocation -> {
                     val map = mapLibreMap ?: return@collect
-                    val location = map.locationComponent.lastKnownLocation ?: return@collect
-                    map.animateCamera(
-                        CameraUpdateFactory.newLatLngZoom(
-                            MapLibreLatLng(location.latitude, location.longitude),
-                            15.0,
-                        ),
-                    )
+                    // lastKnownLocation anlik bir onbellek olabilir (bayat/varsayilan deger
+                    // donebilir); TRACKING modu yerine bunu tercih etmek yaniltici oluyordu.
+                    // Bunun yerine kamerayi surekli takip moduna alip her yeni canli GPS
+                    // guncellemesinde otomatik kaymasini sagliyoruz.
+                    map.locationComponent.setCameraMode(CameraMode.TRACKING)
+                    map.locationComponent.zoomWhileTracking(15.0)
                 }
+                is HomeEffect.ShowError -> snackbarHostState.showSnackbar(effect.message)
             }
         }
     }
@@ -148,7 +177,7 @@ fun HomeRoute(
 
     LaunchedEffect(uiState.visibleVehicles, mapLibreMap) {
         val map = mapLibreMap ?: return@LaunchedEffect
-        renderVehicleMarkers(context, map, uiState.visibleVehicles)
+        renderVehicleMarkers(context, map, uiState.visibleVehicles, isDark)
     }
 
     HomeScreen(
@@ -156,6 +185,9 @@ fun HomeRoute(
         onIntent = viewModel::onIntent,
         onTabSelected = onTabSelected,
         onMapReady = { mapLibreMap = it },
+        onZoomIn = { mapLibreMap?.animateCamera(CameraUpdateFactory.zoomIn()) },
+        onZoomOut = { mapLibreMap?.animateCamera(CameraUpdateFactory.zoomOut()) },
+        snackbarHostState = snackbarHostState,
         modifier = modifier,
     )
 }
@@ -166,6 +198,9 @@ fun HomeScreen(
     onIntent: (HomeIntent) -> Unit,
     onTabSelected: (NavigationTab) -> Unit,
     onMapReady: (MapLibreMap) -> Unit,
+    onZoomIn: () -> Unit,
+    onZoomOut: () -> Unit,
+    snackbarHostState: SnackbarHostState,
     modifier: Modifier = Modifier,
 ) {
     Scaffold(
@@ -175,6 +210,7 @@ fun HomeScreen(
                 onTabSelected = onTabSelected,
             )
         },
+        snackbarHost = { SnackbarHost(snackbarHostState) },
         modifier = modifier,
     ) { paddingValues ->
         Box(
@@ -184,44 +220,79 @@ fun HomeScreen(
         ) {
             RencarMapView(modifier = Modifier.fillMaxSize(), onMapReady = onMapReady)
 
+            if (state.isLoading) {
+                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                    CircularProgressIndicator(color = Primary)
+                }
+            }
+
             Column(
                 modifier = Modifier
                     .fillMaxSize()
-                    .statusBarsPadding()
-                    .padding(horizontal = 18.dp),
+                    .statusBarsPadding(),
             ) {
                 Spacer(modifier = Modifier.height(16.dp))
-                SearchBar()
+                SearchBar(
+                    query = state.searchQuery,
+                    onQueryChange = { onIntent(HomeIntent.SearchQueryChanged(it)) },
+                    modifier = Modifier.padding(horizontal = 18.dp),
+                )
 
                 Spacer(modifier = Modifier.weight(1f))
+
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 18.dp),
+                    contentAlignment = Alignment.CenterEnd,
+                ) {
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        MapZoomControls(
+                            onZoomIn = { onZoomIn() },
+                            onZoomOut = { onZoomOut() },
+                        )
+                        Spacer(modifier = Modifier.height(12.dp))
+                        LocateMeButton(onClick = { onIntent(HomeIntent.LocateMeClicked) })
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(12.dp))
 
                 NearbyVehiclesCard(
                     nearbyCount = state.visibleVehicles.size,
                     selectedFilter = state.selectedFilter,
                     onFilterSelected = { onIntent(HomeIntent.FilterSelected(it)) },
                 )
-                Spacer(modifier = Modifier.height(16.dp))
             }
-
-            LocateMeButton(
-                onClick = { onIntent(HomeIntent.LocateMeClicked) },
-                modifier = Modifier
-                    .align(Alignment.TopEnd)
-                    .statusBarsPadding()
-                    .padding(top = 96.dp, end = 18.dp),
-            )
         }
     }
 }
 
 @Composable
-private fun SearchBar(modifier: Modifier = Modifier) {
+private fun isDarkHome(): Boolean =
+    MaterialTheme.colorScheme.background != Color(BackgroundLight.value)
+
+@Composable
+private fun SearchBar(
+    query: String,
+    onQueryChange: (String) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val isDark = isDarkHome()
+    val barColor = if (isDark) SurfaceElevatedDark else SurfaceLight
+    val borderColor = if (isDark) BorderStrongDark else Color.Transparent
+    val iconColor = if (isDark) TextTertiaryDark else MaterialTheme.colorScheme.onSurfaceVariant
+    val hintColor = if (isDark) TextHintDark else MaterialTheme.colorScheme.onSurfaceVariant
+    val filterBg = if (isDark) Color(0xFF262E39) else MaterialTheme.colorScheme.surfaceVariant
+    val filterIconColor = if (isDark) TextSecondaryDark else MaterialTheme.colorScheme.onSurface
+
     Row(
         modifier = modifier
             .fillMaxWidth()
             .height(54.dp)
             .clip(RoundedCornerShape(18.dp))
-            .background(MaterialTheme.colorScheme.surface)
+            .background(barColor)
+            .border(width = 1.dp, color = borderColor, shape = RoundedCornerShape(18.dp))
             .padding(horizontal = 16.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(12.dp),
@@ -229,25 +300,37 @@ private fun SearchBar(modifier: Modifier = Modifier) {
         Icon(
             imageVector = Icons.Default.Search,
             contentDescription = null,
-            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+            tint = iconColor,
         )
-        Text(
-            text = "Nereden araç alacaksın?",
-            style = bodyS,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        BasicTextField(
+            value = query,
+            onValueChange = onQueryChange,
+            singleLine = true,
+            textStyle = bodyS.copy(color = MaterialTheme.colorScheme.onSurface),
+            cursorBrush = SolidColor(MaterialTheme.colorScheme.onSurface),
             modifier = Modifier.weight(1f),
+            decorationBox = { innerTextField ->
+                if (query.isEmpty()) {
+                    Text(
+                        text = "Nereden araç alacaksın?",
+                        style = bodyS,
+                        color = hintColor,
+                    )
+                }
+                innerTextField()
+            },
         )
         Box(
             modifier = Modifier
                 .size(38.dp)
                 .clip(RoundedCornerShape(11.dp))
-                .background(MaterialTheme.colorScheme.surfaceVariant),
+                .background(filterBg),
             contentAlignment = Alignment.Center,
         ) {
             Icon(
                 imageVector = Icons.Default.Tune,
                 contentDescription = "Filtrele",
-                tint = MaterialTheme.colorScheme.onSurface,
+                tint = filterIconColor,
                 modifier = Modifier.size(18.dp),
             )
         }
@@ -255,19 +338,66 @@ private fun SearchBar(modifier: Modifier = Modifier) {
 }
 
 @Composable
+private fun MapZoomControls(
+    onZoomIn: () -> Unit,
+    onZoomOut: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val isDark = isDarkHome()
+    val buttonColor = if (isDark) SurfaceElevatedDark else SurfaceLight
+    val borderColor = if (isDark) BorderStrongDark else Color.Transparent
+    val dividerColor = if (isDark) BorderStrongDark else MaterialTheme.colorScheme.outlineVariant
+    val iconTint = if (isDark) TextSecondaryDark else MaterialTheme.colorScheme.onSurface
+
+    Column(
+        modifier = modifier
+            .clip(RoundedCornerShape(14.dp))
+            .background(buttonColor)
+            .border(width = 1.dp, color = borderColor, shape = RoundedCornerShape(14.dp)),
+    ) {
+        IconButton(onClick = onZoomIn, modifier = Modifier.size(46.dp)) {
+            Icon(
+                imageVector = Icons.Default.Add,
+                contentDescription = "Yakınlaştır",
+                tint = iconTint,
+            )
+        }
+        Box(
+            modifier = Modifier
+                .width(46.dp)
+                .height(1.dp)
+                .background(dividerColor),
+        )
+        IconButton(onClick = onZoomOut, modifier = Modifier.size(46.dp)) {
+            Icon(
+                imageVector = Icons.Default.Remove,
+                contentDescription = "Uzaklaştır",
+                tint = iconTint,
+            )
+        }
+    }
+}
+
+@Composable
 private fun LocateMeButton(onClick: () -> Unit, modifier: Modifier = Modifier) {
+    val isDark = isDarkHome()
+    val buttonColor = if (isDark) SurfaceElevatedDark else SurfaceLight
+    val borderColor = if (isDark) BorderStrongDark else Color.Transparent
+    val iconTint = if (isDark) PrimaryOnDark else Primary
+
     Box(
         modifier = modifier
             .size(46.dp)
             .clip(RoundedCornerShape(14.dp))
-            .background(MaterialTheme.colorScheme.surface),
+            .background(buttonColor)
+            .border(width = 1.dp, color = borderColor, shape = RoundedCornerShape(14.dp)),
         contentAlignment = Alignment.Center,
     ) {
         IconButton(onClick = onClick) {
             Icon(
                 imageVector = Icons.Default.MyLocation,
                 contentDescription = "Konumuma git",
-                tint = Primary,
+                tint = iconTint,
             )
         }
     }
@@ -280,6 +410,10 @@ private fun NearbyVehiclesCard(
     onFilterSelected: (CategoryFilter) -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val isDark = isDarkHome()
+    val subtitleColor = if (isDark) TextTertiaryDark else MaterialTheme.colorScheme.onSurfaceVariant
+    val handleColor = if (isDark) Color(0xFF2C333D) else MaterialTheme.colorScheme.outlineVariant
+
     Column(
         modifier = modifier
             .fillMaxWidth()
@@ -287,6 +421,17 @@ private fun NearbyVehiclesCard(
             .background(MaterialTheme.colorScheme.surface)
             .padding(horizontal = 22.dp, vertical = 16.dp),
     ) {
+        Box(
+            modifier = Modifier
+                .align(Alignment.CenterHorizontally)
+                .width(42.dp)
+                .height(5.dp)
+                .clip(RoundedCornerShape(3.dp))
+                .background(handleColor),
+        )
+
+        Spacer(modifier = Modifier.height(16.dp))
+
         Row(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.SpaceBetween,
@@ -301,7 +446,7 @@ private fun NearbyVehiclesCard(
                 Text(
                     text = "Kadıköy çevresinde · 3 dk uzaklıkta",
                     style = bodyS,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    color = subtitleColor,
                 )
             }
         }
@@ -349,6 +494,13 @@ private fun NearbyVehiclesCard(
             shape = RoundedCornerShape(18.dp),
             colors = ButtonDefaults.buttonColors(containerColor = Primary, contentColor = TextOnPrimary),
         ) {
+            Icon(
+                imageVector = Icons.Default.LocationOn,
+                contentDescription = null,
+                tint = TextOnPrimary,
+                modifier = Modifier.size(20.dp),
+            )
+            Spacer(modifier = Modifier.width(8.dp))
             Text(text = "En Yakın Aracı Bul", style = titleL, color = TextOnPrimary)
         }
     }
@@ -362,8 +514,11 @@ private fun FilterChip(
     modifier: Modifier = Modifier,
     dotColor: Color? = null,
 ) {
-    val background = if (selected) Primary else MaterialTheme.colorScheme.surfaceVariant
-    val contentColor = if (selected) TextOnPrimary else MaterialTheme.colorScheme.onSurfaceVariant
+    val isDark = isDarkHome()
+    val inactiveBg = if (isDark) Color(0xFF222A33) else MaterialTheme.colorScheme.surfaceVariant
+    val inactiveText = if (isDark) TextSecondaryDark else MaterialTheme.colorScheme.onSurfaceVariant
+    val background = if (selected) Primary else inactiveBg
+    val contentColor = if (selected) TextOnPrimary else inactiveText
 
     Row(
         modifier = modifier
@@ -432,20 +587,32 @@ private fun enableLocationComponent(context: Context, map: MapLibreMap) {
     val style = map.style ?: return
     val locationComponent = map.locationComponent
     if (!locationComponent.isLocationComponentActivated) {
+        val highAccuracyRequest = LocationEngineRequest.Builder(1000L)
+            .setPriority(LocationEngineRequest.PRIORITY_HIGH_ACCURACY)
+            .setFastestInterval(500L)
+            .build()
         locationComponent.activateLocationComponent(
-            LocationComponentActivationOptions.builder(context, style).build(),
+            LocationComponentActivationOptions.builder(context, style)
+                .useDefaultLocationEngine(true)
+                .locationEngineRequest(highAccuracyRequest)
+                .build(),
         )
     }
     locationComponent.isLocationComponentEnabled = true
     locationComponent.renderMode = RenderMode.NORMAL
 }
 
-private fun renderVehicleMarkers(context: Context, map: MapLibreMap, vehicles: List<VehicleMarker>) {
+private fun renderVehicleMarkers(
+    context: Context,
+    map: MapLibreMap,
+    vehicles: List<VehicleMarker>,
+    isDark: Boolean,
+) {
     map.markers.toList().forEach { map.removeMarker(it) }
     val iconFactory = IconFactory.getInstance(context)
     vehicles.forEach { vehicle ->
         val color = when {
-            vehicle.inUse -> CategoryKullanımdaDark
+            vehicle.inUse -> if (isDark) CategoryKullanımdaDark else CategoryKullanimdaLight
             vehicle.category == VehicleCategory.EKONOMIK -> CategoryEkonomik
             vehicle.category == VehicleCategory.KONFOR -> CategoryKonfor
             else -> CategorySuv
@@ -467,19 +634,33 @@ private fun createPriceMarkerBitmap(label: String, backgroundColor: Int): Bitmap
     }
     val paddingH = 24f
     val paddingV = 16f
+    val tailHeight = 14f
+    val tailWidth = 18f
     val textWidth = textPaint.measureText(label)
     val width = (textWidth + paddingH * 2).toInt().coerceAtLeast(60)
-    val height = (textPaint.textSize + paddingV * 2).toInt()
+    val bubbleHeight = (textPaint.textSize + paddingV * 2)
+    val height = (bubbleHeight + tailHeight).toInt()
 
     val bitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
     val canvas = Canvas(bitmap)
     val backgroundPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = backgroundColor }
-    val rect = RectF(0f, 0f, width.toFloat(), height.toFloat())
-    canvas.drawRoundRect(rect, height / 2.5f, height / 2.5f, backgroundPaint)
+
+    val bubbleRect = RectF(0f, 0f, width.toFloat(), bubbleHeight)
+    canvas.drawRoundRect(bubbleRect, bubbleHeight / 2.5f, bubbleHeight / 2.5f, backgroundPaint)
+
+    val tailPath = android.graphics.Path().apply {
+        val centerX = width / 2f
+        moveTo(centerX - tailWidth / 2f, bubbleHeight - 2f)
+        lineTo(centerX + tailWidth / 2f, bubbleHeight - 2f)
+        lineTo(centerX, bubbleHeight + tailHeight)
+        close()
+    }
+    canvas.drawPath(tailPath, backgroundPaint)
+
     canvas.drawText(
         label,
         paddingH,
-        height / 2f - (textPaint.descent() + textPaint.ascent()) / 2f,
+        bubbleHeight / 2f - (textPaint.descent() + textPaint.ascent()) / 2f,
         textPaint,
     )
     return bitmap

@@ -30,6 +30,8 @@ data class HomeUiState(
     val vehicles: List<VehicleMarker> = emptyList(),
     val selectedFilter: CategoryFilter = CategoryFilter.TUMU,
     val hasLocationPermission: Boolean = false,
+    val searchQuery: String = "",
+    val isLoading: Boolean = false,
 ) {
     val visibleVehicles: List<VehicleMarker>
         get() = if (selectedFilter == CategoryFilter.TUMU) {
@@ -42,6 +44,7 @@ data class HomeUiState(
 sealed interface HomeIntent {
     data class FilterSelected(val filter: CategoryFilter) : HomeIntent
     data class LocationPermissionResult(val granted: Boolean) : HomeIntent
+    data class SearchQueryChanged(val query: String) : HomeIntent
     data object LocateMeClicked : HomeIntent
     data object Logout : HomeIntent
 }
@@ -50,4 +53,5 @@ sealed interface HomeEffect {
     data object NavigateToOnboarding : HomeEffect
     data object RequestLocationPermission : HomeEffect
     data object CenterOnUserLocation : HomeEffect
+    data class ShowError(val message: String) : HomeEffect
 }
