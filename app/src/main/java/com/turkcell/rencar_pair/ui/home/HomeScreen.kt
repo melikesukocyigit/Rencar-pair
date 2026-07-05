@@ -141,6 +141,7 @@ private const val MAP_STYLE_URL = "https://api.maptiler.com/maps/streets-v4/styl
 @Composable
 fun HomeRoute(
     onTabSelected: (NavigationTab) -> Unit,
+    onNavigateToReservation: (vehicleId: String, brand: String, model: String, plate: String, pricePerDay: Int) -> Unit,
     modifier: Modifier = Modifier,
     viewModel: HomeViewModel = hiltViewModel(),
 ) {
@@ -246,6 +247,7 @@ fun HomeRoute(
         state = uiState,
         onIntent = viewModel::onIntent,
         onTabSelected = onTabSelected,
+        onNavigateToReservation = onNavigateToReservation,
         onMapReady = { mapLibreMap = it },
         onZoomIn = { mapLibreMap?.animateCamera(CameraUpdateFactory.zoomIn()) },
         onZoomOut = { mapLibreMap?.animateCamera(CameraUpdateFactory.zoomOut()) },
@@ -259,6 +261,7 @@ fun HomeScreen(
     state: HomeUiState,
     onIntent: (HomeIntent) -> Unit,
     onTabSelected: (NavigationTab) -> Unit,
+    onNavigateToReservation: (vehicleId: String, brand: String, model: String, plate: String, pricePerDay: Int) -> Unit,
     onMapReady: (MapLibreMap) -> Unit,
     onZoomIn: () -> Unit,
     onZoomOut: () -> Unit,
@@ -342,6 +345,9 @@ fun HomeScreen(
         VehicleDetailBottomSheet(
             vehicle = vehicle,
             onDismiss = { onIntent(HomeIntent.VehicleDetailDismissed) },
+            onReserveClick = {
+                onNavigateToReservation(vehicle.id, vehicle.brand, vehicle.model, vehicle.plate, vehicle.pricePerDay)
+            },
         )
     }
 }
@@ -362,6 +368,7 @@ private const val PLACEHOLDER_SEAT_COUNT = 5
 private fun VehicleDetailBottomSheet(
     vehicle: VehicleMarker,
     onDismiss: () -> Unit,
+    onReserveClick: () -> Unit,
 ) {
     val isDark = isDarkHome()
     val sheetColor = if (isDark) SurfaceDark else SurfaceLight
@@ -594,7 +601,7 @@ private fun VehicleDetailBottomSheet(
 
             Row(horizontalArrangement = Arrangement.spacedBy(11.dp)) {
                 OutlinedButton(
-                    onClick = { /* TODO: gercek rezervasyon akisi (POST /rentals) sonraki adimda */ },
+                    onClick = onReserveClick,
                     modifier = Modifier
                         .width(130.dp)
                         .height(56.dp),
@@ -1008,9 +1015,22 @@ private fun enableLocationComponent(
     locationComponent.isLocationComponentEnabled = true
     locationComponent.renderMode = RenderMode.NORMAL
 
+    val engine = locationComponent.locationEngine
+
+    // Yeni bir GPS fix'i gelene kadar ekranda sonsuza dek "Konumunuz araniyor..."
+    // takili kalmamasi icin, sistemde onbellekte zaten bulunan son bilinen konum
+    // (varsa) hemen kullanilir; ardindan canli guncellemeler dinlenmeye devam eder.
+    engine?.getLastLocation(object : LocationEngineCallback<LocationEngineResult> {
+        override fun onSuccess(result: LocationEngineResult) {
+            result.lastLocation?.let(onLocationUpdate)
+        }
+
+        override fun onFailure(exception: Exception) = Unit
+    })
+
     // "En yakin araci bul" ve alt karttaki gercek mesafe/sure gosterimi icin canli
     // kullanici konumu gerekiyor; bu callback her yeni GPS guncellemesinde tetiklenir.
-    locationComponent.locationEngine?.requestLocationUpdates(
+    engine?.requestLocationUpdates(
         highAccuracyRequest,
         object : LocationEngineCallback<LocationEngineResult> {
             override fun onSuccess(result: LocationEngineResult) {
