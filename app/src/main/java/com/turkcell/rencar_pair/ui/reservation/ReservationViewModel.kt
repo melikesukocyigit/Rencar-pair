@@ -59,7 +59,18 @@ class ReservationViewModel @Inject constructor(
             val result = rentalRepository.createRental(state.vehicleId, endDate)
             _uiState.update { it.copy(isSubmitting = false) }
             result
-                .onSuccess { _effect.send(ReservationEffect.ShowSuccessAndNavigateBack("Rezervasyon oluşturuldu.")) }
+                .onSuccess { rental ->
+                    _effect.send(
+                        ReservationEffect.NavigateToVehicleCondition(
+                            rentalId = rental.id,
+                            vehicleId = state.vehicleId,
+                            brand = state.brand,
+                            model = state.model,
+                            plate = state.plate,
+                            pricePerDay = state.pricePerDay,
+                        ),
+                    )
+                }
                 .onFailure { _effect.send(ReservationEffect.ShowError(it.message ?: "Rezervasyon oluşturulamadı.")) }
         }
     }

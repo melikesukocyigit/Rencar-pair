@@ -47,6 +47,13 @@ sealed interface ReservationIntent {
 }
 
 sealed interface ReservationEffect {
-    data class ShowSuccessAndNavigateBack(val message: String) : ReservationEffect
+    data class NavigateToVehicleCondition(
+        val rentalId: String,
+        val vehicleId: String,
+        val brand: String,
+        val model: String,
+        val plate: String,
+        val pricePerDay: Double,
+    ) : ReservationEffect
     data class ShowError(val message: String) : ReservationEffect
 }

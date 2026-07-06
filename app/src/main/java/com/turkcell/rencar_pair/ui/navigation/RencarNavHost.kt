@@ -26,6 +26,9 @@ import com.turkcell.rencar_pair.ui.theme.bodyM
 import com.turkcell.rencar_pair.ui.theme.headingXL
 import com.turkcell.rencar_pair.ui.profile.ProfileRoute
 import com.turkcell.rencar_pair.ui.reservation.ReservationRoute
+import com.turkcell.rencar_pair.ui.activerental.ActiveRentalRoute
+import com.turkcell.rencar_pair.ui.tripsummary.TripSummaryRoute
+import com.turkcell.rencar_pair.ui.vehiclecondition.VehicleConditionRoute
 import com.turkcell.rencar_pair.ui.wallet.WalletRoute
 
 private const val ROUTE_SPLASH     = "splash"
@@ -39,6 +42,9 @@ private const val ROUTE_WALLET     = "wallet"
 private const val ROUTE_HISTORY    = "history"
 private const val ROUTE_PROFILE    = "profile"
 private const val ROUTE_RESERVATION = "reservation"
+private const val ROUTE_VEHICLE_CONDITION = "vehicle-condition"
+private const val ROUTE_ACTIVE_RENTAL = "active-rental"
+private const val ROUTE_TRIP_SUMMARY = "trip-summary"
 
 @Composable
 fun RencarNavHost(
@@ -152,6 +158,80 @@ fun RencarNavHost(
         ) {
             ReservationRoute(
                 onBack = { navController.popBackStack() },
+                onNavigateToVehicleCondition = { rentalId, vehicleId, brand, model, plate, pricePerDay ->
+                    navController.navigate(
+                        "$ROUTE_VEHICLE_CONDITION/$rentalId/$vehicleId/$brand/$model/$plate/$pricePerDay",
+                    ) {
+                        popUpTo(ROUTE_HOME)
+                    }
+                },
+            )
+        }
+
+        composable(
+            route = "$ROUTE_VEHICLE_CONDITION/{rentalId}/{vehicleId}/{brand}/{model}/{plate}/{pricePerDay}",
+            arguments = listOf(
+                navArgument("rentalId") { type = NavType.StringType },
+                navArgument("vehicleId") { type = NavType.StringType },
+                navArgument("brand") { type = NavType.StringType },
+                navArgument("model") { type = NavType.StringType },
+                navArgument("plate") { type = NavType.StringType },
+                navArgument("pricePerDay") { type = NavType.StringType },
+            ),
+        ) {
+            VehicleConditionRoute(
+                onBack = { navController.popBackStack() },
+                onNavigateToActiveRental = { rentalId, vehicleId, brand, model, plate, pricePerDay ->
+                    navController.navigate(
+                        "$ROUTE_ACTIVE_RENTAL/$rentalId/$vehicleId/$brand/$model/$plate/$pricePerDay",
+                    ) {
+                        popUpTo(ROUTE_HOME)
+                    }
+                },
+            )
+        }
+
+        composable(
+            route = "$ROUTE_ACTIVE_RENTAL/{rentalId}/{vehicleId}/{brand}/{model}/{plate}/{pricePerDay}",
+            arguments = listOf(
+                navArgument("rentalId") { type = NavType.StringType },
+                navArgument("vehicleId") { type = NavType.StringType },
+                navArgument("brand") { type = NavType.StringType },
+                navArgument("model") { type = NavType.StringType },
+                navArgument("plate") { type = NavType.StringType },
+                navArgument("pricePerDay") { type = NavType.StringType },
+            ),
+        ) {
+            ActiveRentalRoute(
+                onBack = { navController.popBackStack() },
+                onNavigateToTripSummary = { rentalId, brand, model, plate, durationSeconds, distanceMeters, totalPrice ->
+                    navController.navigate(
+                        "$ROUTE_TRIP_SUMMARY/$rentalId/$brand/$model/$plate/$durationSeconds/$distanceMeters/$totalPrice",
+                    ) {
+                        popUpTo(ROUTE_HOME)
+                    }
+                },
+            )
+        }
+
+        composable(
+            route = "$ROUTE_TRIP_SUMMARY/{rentalId}/{brand}/{model}/{plate}/{durationSeconds}/{distanceMeters}/{totalPrice}",
+            arguments = listOf(
+                navArgument("rentalId") { type = NavType.StringType },
+                navArgument("brand") { type = NavType.StringType },
+                navArgument("model") { type = NavType.StringType },
+                navArgument("plate") { type = NavType.StringType },
+                navArgument("durationSeconds") { type = NavType.StringType },
+                navArgument("distanceMeters") { type = NavType.StringType },
+                navArgument("totalPrice") { type = NavType.StringType },
+            ),
+        ) {
+            TripSummaryRoute(
+                onNavigateHome = {
+                    navController.navigate(ROUTE_HOME) {
+                        popUpTo(0) { inclusive = true }
+                    }
+                },
             )
         }
 
