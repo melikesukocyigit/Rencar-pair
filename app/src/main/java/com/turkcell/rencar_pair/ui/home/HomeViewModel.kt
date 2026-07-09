@@ -12,6 +12,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import com.turkcell.rencar_pair.data.local.TokenManager
 import javax.inject.Inject
 
 // API'nin gercek arac tipini (SEDAN/SUV/HATCHBACK/STATION/MINIVAN) tasarimdaki
@@ -64,9 +65,15 @@ private fun mockVehicles(): List<VehicleMarker> = listOf(
 @HiltViewModel
 class HomeViewModel @Inject constructor(
     private val vehicleRepository: VehicleRepository,
+    private val tokenManager: TokenManager,
 ) : ViewModel() {
 
-    private val _uiState = MutableStateFlow(HomeUiState(isLoading = true))
+    private val _uiState = MutableStateFlow(
+        HomeUiState(
+            isLoading = true,
+            isLocationAccuracyHigh = tokenManager.isLocationAccuracyHigh()
+        )
+    )
     val uiState: StateFlow<HomeUiState> = _uiState.asStateFlow()
 
     private val _effect = Channel<HomeEffect>(Channel.BUFFERED)
@@ -99,6 +106,12 @@ class HomeViewModel @Inject constructor(
             HomeIntent.LocateMeClicked -> locateMe()
 
             HomeIntent.FindNearestVehicleClicked -> findNearestVehicle()
+
+            HomeIntent.RefreshSettings -> {
+                _uiState.update {
+                    it.copy(isLocationAccuracyHigh = tokenManager.isLocationAccuracyHigh())
+                }
+            }
         }
     }
 

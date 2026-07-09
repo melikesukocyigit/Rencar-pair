@@ -67,6 +67,7 @@ data class HomeUiState(
     val searchQuery: String = "",
     val isLoading: Boolean = false,
     val selectedVehicleId: String? = null,
+    val isLocationAccuracyHigh: Boolean = true,
 ) {
     val visibleVehicles: List<VehicleMarker>
         get() = if (selectedFilter == CategoryFilter.TUMU) {
@@ -103,6 +104,7 @@ sealed interface HomeIntent {
     data object VehicleDetailDismissed : HomeIntent
     data object LocateMeClicked : HomeIntent
     data object FindNearestVehicleClicked : HomeIntent
+    data object RefreshSettings : HomeIntent
 }
 
 sealed interface HomeEffect {
