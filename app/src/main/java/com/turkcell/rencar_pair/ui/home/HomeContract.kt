@@ -59,6 +59,21 @@ data class VehicleMarker(
     val pricePerDay: Int = 0,
 )
 
+data class ActiveRentalVehicle(
+    val brand: String,
+    val model: String,
+    val plate: String,
+    val pricePerDay: Double,
+)
+
+data class ActiveRentalSummary(
+    val rentalId: String,
+    val vehicleId: String,
+    // Arac detayi cagrisi basarisiz olursa null kalir. Kiralamayi bitirmek icin
+    // rentalId tek basina yettiginden banner ve yonlendirme yine de calisir.
+    val vehicle: ActiveRentalVehicle? = null,
+)
+
 data class HomeUiState(
     val vehicles: List<VehicleMarker> = emptyList(),
     val selectedFilter: CategoryFilter = CategoryFilter.TUMU,
@@ -68,6 +83,7 @@ data class HomeUiState(
     val isLoading: Boolean = false,
     val selectedVehicleId: String? = null,
     val isLocationAccuracyHigh: Boolean = true,
+    val activeRental: ActiveRentalSummary? = null,
 ) {
     val visibleVehicles: List<VehicleMarker>
         get() = if (selectedFilter == CategoryFilter.TUMU) {
@@ -112,4 +128,5 @@ sealed interface HomeEffect {
     data object CenterOnUserLocation : HomeEffect
     data class CenterOnLocation(val location: LatLng) : HomeEffect
     data class ShowError(val message: String) : HomeEffect
+    data class NavigateToActiveRental(val activeRental: ActiveRentalSummary) : HomeEffect
 }

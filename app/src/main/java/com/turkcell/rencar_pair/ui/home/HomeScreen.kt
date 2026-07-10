@@ -38,6 +38,7 @@ import androidx.compose.material.icons.filled.EventSeat
 import androidx.compose.material.icons.filled.LocalGasStation
 import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.LockOpen
+import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.MyLocation
 import androidx.compose.material.icons.filled.Remove
 import androidx.compose.material.icons.filled.Search
@@ -117,7 +118,9 @@ import com.turkcell.rencar_pair.ui.theme.labelXS
 import com.turkcell.rencar_pair.ui.theme.priceL
 import com.turkcell.rencar_pair.ui.theme.statValue
 import com.turkcell.rencar_pair.ui.theme.titleL
+import com.turkcell.rencar_pair.ui.theme.titleS
 import com.turkcell.rencar_pair.ui.theme.titleXS
+import androidx.compose.ui.text.font.FontWeight
 import org.maplibre.android.MapLibre
 import org.maplibre.android.WellKnownTileServer
 import org.maplibre.android.annotations.IconFactory
@@ -143,6 +146,7 @@ private const val MAP_STYLE_URL = "https://api.maptiler.com/maps/streets-v4/styl
 fun HomeRoute(
     onTabSelected: (NavigationTab) -> Unit,
     onNavigateToReservation: (vehicleId: String, brand: String, model: String, plate: String, pricePerDay: Int) -> Unit,
+    onNavigateToActiveRental: (ActiveRentalSummary) -> Unit,
     modifier: Modifier = Modifier,
     viewModel: HomeViewModel = hiltViewModel(),
 ) {
@@ -154,7 +158,9 @@ fun HomeRoute(
     val snackbarHostState = remember { SnackbarHostState() }
     val isDark = isDarkHome()
 
-    // Screen resume lifecycle observer to refresh location accuracy settings from TokenManager.
+    // Her ON_RESUME'da konum hassasiyeti ayari TokenManager'dan tazelenir ve aktif
+    // kiralama kontrol edilir. Ilk ON_RESUME ayni zamanda soguk acilis demektir;
+    // HomeViewModel bunu aktif kiralamaya otomatik yonlendirmek icin kullanir.
     DisposableEffect(lifecycleOwner) {
         val observer = LifecycleEventObserver { _, event ->
             if (event == Lifecycle.Event.ON_RESUME) {
@@ -223,6 +229,7 @@ fun HomeRoute(
                     )
                 }
                 is HomeEffect.ShowError -> snackbarHostState.showSnackbar(effect.message)
+                is HomeEffect.NavigateToActiveRental -> onNavigateToActiveRental(effect.activeRental)
             }
         }
     }
@@ -323,6 +330,7 @@ fun HomeRoute(
         onIntent = viewModel::onIntent,
         onTabSelected = onTabSelected,
         onNavigateToReservation = onNavigateToReservation,
+        onNavigateToActiveRental = onNavigateToActiveRental,
         onMapReady = { mapLibreMap = it },
         onZoomIn = { mapLibreMap?.animateCamera(CameraUpdateFactory.zoomIn()) },
         onZoomOut = { mapLibreMap?.animateCamera(CameraUpdateFactory.zoomOut()) },
@@ -337,6 +345,7 @@ fun HomeScreen(
     onIntent: (HomeIntent) -> Unit,
     onTabSelected: (NavigationTab) -> Unit,
     onNavigateToReservation: (vehicleId: String, brand: String, model: String, plate: String, pricePerDay: Int) -> Unit,
+    onNavigateToActiveRental: (ActiveRentalSummary) -> Unit,
     onMapReady: (MapLibreMap) -> Unit,
     onZoomIn: () -> Unit,
     onZoomOut: () -> Unit,
@@ -381,6 +390,15 @@ fun HomeScreen(
                         query = state.searchQuery,
                         onQueryChange = { onIntent(HomeIntent.SearchQueryChanged(it)) },
                         modifier = Modifier.weight(1f),
+                    )
+                }
+
+                state.activeRental?.let { activeRental ->
+                    Spacer(modifier = Modifier.height(10.dp))
+                    ActiveRentalBanner(
+                        activeRental = activeRental,
+                        onClick = { onNavigateToActiveRental(activeRental) },
+                        modifier = Modifier.padding(horizontal = 18.dp)
                     )
                 }
 
@@ -1157,4 +1175,67 @@ private fun createPriceMarkerBitmap(label: String, backgroundColor: Int): Bitmap
         textPaint,
     )
     return bitmap
+}
+
+@Composable
+private fun ActiveRentalBanner(
+    activeRental: ActiveRentalSummary,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val isDark = isDarkHome()
+    val containerBg = if (isDark) Color(0xFF1B2E3C) else Color(0xFFE3F2FD)
+    val borderColor = if (isDark) Color(0xFF1E88E5).copy(alpha = 0.5f) else Color(0xFF90CAF9)
+    val textColor = if (isDark) Color(0xFFE3F2FD) else Color(0xFF0D47A1)
+    val labelColor = if (isDark) Color(0xFF90CAF9) else Color(0xFF1565C0)
+
+    Row(
+        modifier = modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(16.dp))
+            .background(containerBg)
+            .border(width = 1.dp, color = borderColor, shape = RoundedCornerShape(16.dp))
+            .clickable(onClick = onClick)
+            .padding(horizontal = 16.dp, vertical = 12.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Box(
+            modifier = Modifier
+                .size(40.dp)
+                .clip(RoundedCornerShape(10.dp))
+                .background(if (isDark) Color(0xFF1A237E) else Color(0xFFBBDEFB)),
+            contentAlignment = Alignment.Center,
+        ) {
+            Icon(
+                imageVector = Icons.Default.DirectionsCar,
+                contentDescription = null,
+                tint = if (isDark) Color(0xFF90CAF9) else Color(0xFF0D47A1),
+                modifier = Modifier.size(22.dp)
+            )
+        }
+        Spacer(modifier = Modifier.width(12.dp))
+        Column(modifier = Modifier.weight(1f)) {
+            val vehicle = activeRental.vehicle
+            Text(
+                text = if (vehicle != null) {
+                    "${vehicle.brand} ${vehicle.model} · ${vehicle.plate}"
+                } else {
+                    "Aktif kiralamanız"
+                },
+                style = titleS.copy(fontWeight = FontWeight.Bold),
+                color = textColor
+            )
+            Text(
+                text = "Aktif kiralamanız devam ediyor. Detaylar için tıklayın.",
+                style = bodyS,
+                color = labelColor
+            )
+        }
+        Icon(
+            imageVector = Icons.Default.ChevronRight,
+            contentDescription = null,
+            tint = labelColor,
+            modifier = Modifier.size(20.dp)
+        )
+    }
 }
