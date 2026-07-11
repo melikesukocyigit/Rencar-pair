@@ -32,7 +32,6 @@ data class ActiveRentalUiState(
     val startEpochMillis: Long? = null,
     val nowEpochMillis: Long = System.currentTimeMillis(),
     val distanceMeters: Double = 0.0,
-    val isEnding: Boolean = false,
 ) {
     val elapsedSeconds: Long
         get() {
@@ -66,14 +65,13 @@ sealed interface ActiveRentalIntent {
 }
 
 sealed interface ActiveRentalEffect {
-    data class NavigateToTripSummary(
+    data class NavigateToVehicleCondition(
         val rentalId: String,
+        val vehicleId: String,
         val brand: String,
         val model: String,
         val plate: String,
         val durationSeconds: Long,
         val distanceMeters: Double,
-        val totalPrice: Double,
     ) : ActiveRentalEffect
-    data class ShowError(val message: String) : ActiveRentalEffect
 }

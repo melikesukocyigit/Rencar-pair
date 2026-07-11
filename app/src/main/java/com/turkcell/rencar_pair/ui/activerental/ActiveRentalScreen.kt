@@ -20,7 +20,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
@@ -78,14 +77,14 @@ private const val MAP_STYLE_URL = "https://api.maptiler.com/maps/streets-v4/styl
 @Composable
 fun ActiveRentalRoute(
     onBack: () -> Unit,
-    onNavigateToTripSummary: (
+    onNavigateToVehicleCondition: (
         rentalId: String,
+        vehicleId: String,
         brand: String,
         model: String,
         plate: String,
         durationSeconds: Long,
         distanceMeters: Double,
-        totalPrice: Double,
     ) -> Unit,
     modifier: Modifier = Modifier,
     viewModel: ActiveRentalViewModel = hiltViewModel(),
@@ -103,17 +102,16 @@ fun ActiveRentalRoute(
     LaunchedEffect(Unit) {
         viewModel.effect.collect { effect ->
             when (effect) {
-                is ActiveRentalEffect.NavigateToTripSummary ->
-                    onNavigateToTripSummary(
+                is ActiveRentalEffect.NavigateToVehicleCondition ->
+                    onNavigateToVehicleCondition(
                         effect.rentalId,
+                        effect.vehicleId,
                         effect.brand,
                         effect.model,
                         effect.plate,
                         effect.durationSeconds,
                         effect.distanceMeters,
-                        effect.totalPrice,
                     )
-                is ActiveRentalEffect.ShowError -> snackbarHostState.showSnackbar(effect.message)
             }
         }
     }
@@ -226,18 +224,13 @@ fun ActiveRentalScreen(
                     }
                     Button(
                         onClick = { onIntent(ActiveRentalIntent.EndRentalClicked) },
-                        enabled = !state.isEnding,
                         modifier = Modifier
                             .weight(1f)
                             .height(56.dp),
                         shape = RoundedCornerShape(16.dp),
                         colors = ButtonDefaults.buttonColors(containerColor = ErrorDefault, contentColor = TextOnPrimary),
                     ) {
-                        if (state.isEnding) {
-                            CircularProgressIndicator(color = TextOnPrimary, strokeWidth = 2.dp, modifier = Modifier.height(20.dp))
-                        } else {
-                            Text(text = "Kiralamayı Bitir", style = titleL, color = TextOnPrimary)
-                        }
+                        Text(text = "Kiralamayı Bitir", style = titleL, color = TextOnPrimary)
                     }
                 }
             }
