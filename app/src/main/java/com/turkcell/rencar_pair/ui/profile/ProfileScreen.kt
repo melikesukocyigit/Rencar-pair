@@ -70,9 +70,10 @@ fun ProfileScreen(
     snackbarHostState: SnackbarHostState,
     modifier: Modifier = Modifier,
 ) {
+    val isDark = isDarkProfile()
     Scaffold(
         snackbarHost   = { SnackbarHost(snackbarHostState) },
-        containerColor = Color(0xFFF4F6F9),
+        containerColor = if (isDark) BackgroundDark else Color(0xFFF4F6F9),
         bottomBar = {
             RencarBottomNavigation(
                 selectedTab   = NavigationTab.PROFIL,
@@ -142,6 +143,7 @@ private fun UserHeader(name: String, phone: String, onEdit: () -> Unit) {
         .joinToString("") { it.first().uppercase() }
         .ifEmpty { "?" }
 
+    val isDark = isDarkProfile()
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -176,14 +178,14 @@ private fun UserHeader(name: String, phone: String, onEdit: () -> Unit) {
             Text(
                 text     = name.ifBlank { "Kullanıcı" },
                 style    = headingXS.copy(fontSize = 20.sp, fontWeight = FontWeight.Bold),
-                color    = TextPrimaryLight,
+                color    = if (isDark) TextPrimaryDark else TextPrimaryLight,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
             )
             Text(
                 text  = phone.ifBlank { "-" },
                 style = bodyS.copy(fontSize = 13.sp, fontWeight = FontWeight.Medium),
-                color = TextTertiaryLight,
+                color = if (isDark) TextTertiaryDark else TextTertiaryLight,
             )
         }
 
@@ -192,11 +194,11 @@ private fun UserHeader(name: String, phone: String, onEdit: () -> Unit) {
             modifier = Modifier
                 .size(38.dp)
                 .shadow(elevation = 2.dp, shape = RoundedCornerShape(12.dp))
-                .background(Color.White)
+                .background(if (isDark) SurfaceElevatedDark else Color.White)
                 .clickable(onClick = onEdit),
             contentAlignment = Alignment.Center,
         ) {
-            PencilIcon(tint = TextSecondaryLight)
+            PencilIcon(tint = if (isDark) TextSecondaryDark else TextSecondaryLight)
         }
     }
 }
@@ -205,11 +207,16 @@ private fun UserHeader(name: String, phone: String, onEdit: () -> Unit) {
 
 @Composable
 private fun LicenseCard(isApproved: Boolean, licenseClass: String) {
+    val isDark = isDarkProfile()
+    val cardBg = if (isDark) SurfaceDark else Color.White
+    val accentBg = if (isDark) Color(0xFF162D21) else Color(0xFFE7F4EC)
+    val accentColor = if (isDark) SuccessStrongDark else Color(0xFF1A9E63)
+
     Row(
         modifier = Modifier
             .fillMaxWidth()
             .shadow(elevation = 4.dp, shape = RoundedCornerShape(18.dp))
-            .background(Color.White)
+            .background(cardBg)
             .padding(14.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(12.dp),
@@ -219,22 +226,22 @@ private fun LicenseCard(isApproved: Boolean, licenseClass: String) {
             modifier = Modifier
                 .size(44.dp)
                 .clip(RoundedCornerShape(13.dp))
-                .background(Color(0xFFE7F4EC)),
+                .background(accentBg),
             contentAlignment = Alignment.Center,
         ) {
-            ShieldCheckIcon(tint = Color(0xFF1A9E63))
+            ShieldCheckIcon(tint = accentColor)
         }
 
         Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
             Text(
                 text  = "Ehliyet doğrulandı",
                 style = bodyM.copy(fontSize = 14.5.sp, fontWeight = FontWeight.Bold),
-                color = TextPrimaryLight,
+                color = if (isDark) TextPrimaryDark else TextPrimaryLight,
             )
             Text(
                 text  = licenseClass,
                 style = labelS.copy(fontSize = 12.sp, fontWeight = FontWeight.Medium),
-                color = TextHintLight,
+                color = if (isDark) TextHintDark else TextHintLight,
             )
         }
 
@@ -242,13 +249,13 @@ private fun LicenseCard(isApproved: Boolean, licenseClass: String) {
             Box(
                 modifier = Modifier
                     .clip(RoundedCornerShape(8.dp))
-                    .background(Color(0xFFE7F4EC))
+                    .background(accentBg)
                     .padding(horizontal = 9.dp, vertical = 4.dp),
             ) {
                 Text(
                     text  = "Onaylı",
                     style = labelXS.copy(fontSize = 11.sp, fontWeight = FontWeight.ExtraBold),
-                    color = Color(0xFF1A9E63),
+                    color = accentColor,
                 )
             }
         }
@@ -262,6 +269,12 @@ private fun MenuCard(
     onTabSelected: (NavigationTab) -> Unit,
     onSettingsClicked: () -> Unit
 ) {
+    val isDark = isDarkProfile()
+    val cardBg = if (isDark) SurfaceDark else Color.White
+    val textPrimary = if (isDark) TextPrimaryDark else TextPrimaryLight
+    val textSecondary = if (isDark) TextSecondaryDark else TextSecondaryLight
+    val dividerColor = if (isDark) BorderSubtleDark else Color(0xFFF0F2F6)
+
     val items = listOf(
         "Ödeme yöntemleri",
         "Ayarlar",
@@ -273,7 +286,7 @@ private fun MenuCard(
         modifier = Modifier
             .fillMaxWidth()
             .shadow(elevation = 4.dp, shape = RoundedCornerShape(18.dp))
-            .background(Color.White)
+            .background(cardBg)
             .padding(horizontal = 16.dp, vertical = 4.dp),
     ) {
         items.forEachIndexed { index, label ->
@@ -291,21 +304,21 @@ private fun MenuCard(
                 horizontalArrangement = Arrangement.spacedBy(13.dp),
             ) {
                 when (index) {
-                    0 -> CreditCardIcon(20.dp, TextSecondaryLight)
-                    1 -> SettingsIcon(20.dp, TextSecondaryLight)
-                    2 -> HelpIcon(20.dp, TextSecondaryLight)
-                    3 -> ShareIcon(20.dp, TextSecondaryLight)
+                    0 -> CreditCardIcon(20.dp, textSecondary)
+                    1 -> SettingsIcon(20.dp, textSecondary)
+                    2 -> HelpIcon(20.dp, textSecondary)
+                    3 -> ShareIcon(20.dp, textSecondary)
                 }
                 Text(
                     text     = label,
                     style    = bodyM.copy(fontSize = 14.5.sp, fontWeight = FontWeight.SemiBold),
-                    color    = TextPrimaryLight,
+                    color    = textPrimary,
                     modifier = Modifier.weight(1f),
                 )
-                ChevronRightIcon(size = 18.dp, tint = Color(0xFFC7CFDA))
+                ChevronRightIcon(size = 18.dp, tint = if (isDark) Color(0xFF5A6675) else Color(0xFFC7CFDA))
             }
             if (index < items.lastIndex) {
-                HorizontalDivider(color = Color(0xFFF0F2F6))
+                HorizontalDivider(color = dividerColor)
             }
         }
     }
@@ -319,15 +332,22 @@ private fun SettingsDialog(
     onToggleAccuracy: (Boolean) -> Unit,
     onDismiss: () -> Unit
 ) {
+    val isDark = isDarkProfile()
+    val dialogBg = if (isDark) SurfaceDark else Color.White
+    val textPrimary = if (isDark) TextPrimaryDark else TextPrimaryLight
+    val textSecondary = if (isDark) TextSecondaryDark else TextSecondaryLight
+    val textHint = if (isDark) TextHintDark else TextHintLight
+    val radioSelectedColor = if (isDark) PrimaryOnDark else Primary
+
     AlertDialog(
         onDismissRequest = onDismiss,
         shape = RoundedCornerShape(24.dp),
-        containerColor = Color.White,
+        containerColor = dialogBg,
         title = {
             Text(
                 text = "Uygulama Ayarları",
                 style = headingXS.copy(fontWeight = FontWeight.Bold),
-                color = TextPrimaryLight
+                color = textPrimary
             )
         },
         text = {
@@ -338,7 +358,7 @@ private fun SettingsDialog(
                 Text(
                     text = "Konum Hassasiyeti ve Güç Tüketimi",
                     style = bodyS.copy(fontWeight = FontWeight.Bold),
-                    color = TextSecondaryLight
+                    color = textSecondary
                 )
 
                 // High Accuracy (GPS)
@@ -353,18 +373,18 @@ private fun SettingsDialog(
                     RadioButton(
                         selected = isHighAccuracy,
                         onClick = { onToggleAccuracy(true) },
-                        colors = RadioButtonDefaults.colors(selectedColor = Primary)
+                        colors = RadioButtonDefaults.colors(selectedColor = radioSelectedColor)
                     )
                     Column(modifier = Modifier.weight(1f)) {
                         Text(
                             text = "Yüksek Doğruluk (GPS)",
                             style = bodyM.copy(fontWeight = FontWeight.Bold),
-                            color = TextPrimaryLight
+                            color = textPrimary
                         )
                         Text(
                             text = "Canlı harita takibi için idealdir. Daha fazla pil tüketir.",
                             style = bodyS,
-                            color = TextHintLight
+                            color = textHint
                         )
                     }
                 }
@@ -381,18 +401,18 @@ private fun SettingsDialog(
                     RadioButton(
                         selected = !isHighAccuracy,
                         onClick = { onToggleAccuracy(false) },
-                        colors = RadioButtonDefaults.colors(selectedColor = Primary)
+                        colors = RadioButtonDefaults.colors(selectedColor = radioSelectedColor)
                     )
                     Column(modifier = Modifier.weight(1f)) {
                         Text(
                             text = "Dengeli Güç Tasarrufu",
                             style = bodyM.copy(fontWeight = FontWeight.Bold),
-                            color = TextPrimaryLight
+                            color = textPrimary
                         )
                         Text(
                             text = "Baz istasyonu ve Wi-Fi kullanır. Pil tasarrufu sağlar.",
                             style = bodyS,
-                            color = TextHintLight
+                            color = textHint
                         )
                     }
                 }
@@ -401,7 +421,7 @@ private fun SettingsDialog(
         confirmButton = {
             TextButton(
                 onClick = onDismiss,
-                colors = ButtonDefaults.textButtonColors(contentColor = Primary)
+                colors = ButtonDefaults.textButtonColors(contentColor = radioSelectedColor)
             ) {
                 Text("Kapat", style = labelM.copy(fontWeight = FontWeight.Bold))
             }
@@ -413,11 +433,12 @@ private fun SettingsDialog(
 
 @Composable
 private fun LogoutCard(onLogout: () -> Unit) {
+    val isDark = isDarkProfile()
     Row(
         modifier = Modifier
             .fillMaxWidth()
             .shadow(elevation = 4.dp, shape = RoundedCornerShape(16.dp))
-            .background(Color.White)
+            .background(if (isDark) SurfaceDark else Color.White)
             .clickable(onClick = onLogout)
             .padding(15.dp),
         verticalAlignment     = Alignment.CenterVertically,
@@ -605,3 +626,7 @@ private fun LogoutIcon(size: Dp, tint: Color) {
         drawLine(tint, androidx.compose.ui.geometry.Offset(6 * s, 12 * s), androidx.compose.ui.geometry.Offset(17 * s, 12 * s), 1.8f * s, cap = StrokeCap.Round)
     }
 }
+
+@Composable
+private fun isDarkProfile(): Boolean =
+    MaterialTheme.colorScheme.background != Color(BackgroundLight.value)
