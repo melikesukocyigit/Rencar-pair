@@ -85,28 +85,23 @@ class ActiveRentalViewModel @Inject constructor(
         lastLocation = location
     }
 
+    // Kiralamayi gercekten sonlandiran API cagrisi (returnVehicle) burada yapilmiyor;
+    // teslim sonrasi 4 foto tamamlanmadan kiralama bitirilemeyecegi icin bu cagri
+    // VehicleCondition-AFTER ekraninin onay adimina tasindi (bkz. VehicleConditionViewModel).
     private fun endRental() {
         val state = _uiState.value
-        if (state.isEnding) return
         viewModelScope.launch {
-            _uiState.update { it.copy(isEnding = true) }
-            val result = rentalRepository.returnVehicle(state.rentalId)
-            _uiState.update { it.copy(isEnding = false) }
-            result
-                .onSuccess { rental ->
-                    _effect.send(
-                        ActiveRentalEffect.NavigateToTripSummary(
-                            rentalId = rental.id,
-                            brand = state.brand,
-                            model = state.model,
-                            plate = state.plate,
-                            durationSeconds = state.elapsedSeconds,
-                            distanceMeters = state.distanceMeters,
-                            totalPrice = rental.totalPrice,
-                        ),
-                    )
-                }
-                .onFailure { _effect.send(ActiveRentalEffect.ShowError(it.message ?: "Kiralama bitirilemedi.")) }
+            _effect.send(
+                ActiveRentalEffect.NavigateToVehicleCondition(
+                    rentalId = state.rentalId,
+                    vehicleId = state.vehicleId,
+                    brand = state.brand,
+                    model = state.model,
+                    plate = state.plate,
+                    durationSeconds = state.elapsedSeconds,
+                    distanceMeters = state.distanceMeters,
+                ),
+            )
         }
     }
 

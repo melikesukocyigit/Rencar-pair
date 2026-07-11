@@ -56,6 +56,21 @@ private fun activeRentalRoute(
     pricePerDay: String,
 ) = "$ROUTE_ACTIVE_RENTAL/$rentalId/$vehicleId/$brand/$model/$plate/$pricePerDay"
 
+// VehicleCondition ekrani hem surus oncesi (BEFORE) hem surus sonrasi (AFTER) foto
+// kontrolu icin yeniden kullanilir; durationSeconds/distanceMeters yalnizca AFTER'da
+// anlamlidir, BEFORE cagrisinda "0"/"0.0" gecilir.
+private fun vehicleConditionRoute(
+    mode: String,
+    rentalId: String,
+    vehicleId: String,
+    brand: String,
+    model: String,
+    plate: String,
+    pricePerDay: String,
+    durationSeconds: String,
+    distanceMeters: String,
+) = "$ROUTE_VEHICLE_CONDITION/$mode/$rentalId/$vehicleId/$brand/$model/$plate/$pricePerDay/$durationSeconds/$distanceMeters"
+
 @Composable
 fun RencarNavHost(
     tokenManager: TokenManager,
@@ -192,7 +207,17 @@ fun RencarNavHost(
                 onBack = { navController.popBackStack() },
                 onNavigateToVehicleCondition = { rentalId, vehicleId, brand, model, plate, pricePerDay ->
                     navController.navigate(
-                        "$ROUTE_VEHICLE_CONDITION/$rentalId/$vehicleId/$brand/$model/$plate/$pricePerDay",
+                        vehicleConditionRoute(
+                            mode = "BEFORE",
+                            rentalId = rentalId,
+                            vehicleId = vehicleId,
+                            brand = brand,
+                            model = model,
+                            plate = plate,
+                            pricePerDay = pricePerDay.toString(),
+                            durationSeconds = "0",
+                            distanceMeters = "0.0",
+                        ),
                     ) {
                         popUpTo(ROUTE_HOME)
                     }
@@ -201,14 +226,17 @@ fun RencarNavHost(
         }
 
         composable(
-            route = "$ROUTE_VEHICLE_CONDITION/{rentalId}/{vehicleId}/{brand}/{model}/{plate}/{pricePerDay}",
+            route = "$ROUTE_VEHICLE_CONDITION/{mode}/{rentalId}/{vehicleId}/{brand}/{model}/{plate}/{pricePerDay}/{durationSeconds}/{distanceMeters}",
             arguments = listOf(
+                navArgument("mode") { type = NavType.StringType },
                 navArgument("rentalId") { type = NavType.StringType },
                 navArgument("vehicleId") { type = NavType.StringType },
                 navArgument("brand") { type = NavType.StringType },
                 navArgument("model") { type = NavType.StringType },
                 navArgument("plate") { type = NavType.StringType },
                 navArgument("pricePerDay") { type = NavType.StringType },
+                navArgument("durationSeconds") { type = NavType.StringType },
+                navArgument("distanceMeters") { type = NavType.StringType },
             ),
         ) {
             VehicleConditionRoute(
@@ -218,6 +246,13 @@ fun RencarNavHost(
                         activeRentalRoute(
                             rentalId, vehicleId, brand, model, plate, pricePerDay.toString(),
                         ),
+                    ) {
+                        popUpTo(ROUTE_HOME)
+                    }
+                },
+                onNavigateToTripSummary = { rentalId, brand, model, plate, durationSeconds, distanceMeters, totalPrice ->
+                    navController.navigate(
+                        "$ROUTE_TRIP_SUMMARY/$rentalId/$brand/$model/$plate/$durationSeconds/$distanceMeters/$totalPrice",
                     ) {
                         popUpTo(ROUTE_HOME)
                     }
@@ -238,9 +273,19 @@ fun RencarNavHost(
         ) {
             ActiveRentalRoute(
                 onBack = { navController.popBackStack() },
-                onNavigateToTripSummary = { rentalId, brand, model, plate, durationSeconds, distanceMeters, totalPrice ->
+                onNavigateToVehicleCondition = { rentalId, vehicleId, brand, model, plate, durationSeconds, distanceMeters ->
                     navController.navigate(
-                        "$ROUTE_TRIP_SUMMARY/$rentalId/$brand/$model/$plate/$durationSeconds/$distanceMeters/$totalPrice",
+                        vehicleConditionRoute(
+                            mode = "AFTER",
+                            rentalId = rentalId,
+                            vehicleId = vehicleId,
+                            brand = brand,
+                            model = model,
+                            plate = plate,
+                            pricePerDay = "0.0",
+                            durationSeconds = durationSeconds.toString(),
+                            distanceMeters = distanceMeters.toString(),
+                        ),
                     ) {
                         popUpTo(ROUTE_HOME)
                     }
