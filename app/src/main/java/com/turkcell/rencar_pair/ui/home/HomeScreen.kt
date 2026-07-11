@@ -55,6 +55,7 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
@@ -496,6 +497,10 @@ private fun VehicleDetailBottomSheet(
     ModalBottomSheet(
         onDismissRequest = onDismiss,
         containerColor = sheetColor,
+        // Varsayilan yari-genisletilmis durumu atlayip sheet'i acilir acilmaz
+        // tam genisletilmis halde gosterir; kullanicinin elle yukari suruklemesi
+        // gerekmez.
+        sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
     ) {
         Column(
             modifier = Modifier
@@ -763,7 +768,7 @@ private fun VehiclePhoto(
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .height(128.dp)
+            .height(200.dp)
             .clip(RoundedCornerShape(20.dp))
             .background(cardColor),
         contentAlignment = Alignment.Center,
@@ -780,7 +785,7 @@ private fun VehiclePhoto(
                 imageVector = Icons.Default.DirectionsCar,
                 contentDescription = null,
                 tint = placeholderTint,
-                modifier = Modifier.size(48.dp),
+                modifier = Modifier.size(64.dp),
             )
         }
     }
