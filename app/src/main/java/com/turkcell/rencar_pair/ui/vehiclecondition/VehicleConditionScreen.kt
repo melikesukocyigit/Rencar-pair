@@ -21,10 +21,13 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.DirectionsCar
+import androidx.compose.material.icons.filled.Lock
+import androidx.compose.material.icons.filled.LockOpen
 import androidx.compose.material.icons.filled.PhotoCamera
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
@@ -69,6 +72,15 @@ fun VehicleConditionRoute(
         plate: String,
         pricePerDay: Double,
     ) -> Unit,
+    onNavigateToTripSummary: (
+        rentalId: String,
+        brand: String,
+        model: String,
+        plate: String,
+        durationSeconds: Long,
+        distanceMeters: Double,
+        totalPrice: Double,
+    ) -> Unit,
     modifier: Modifier = Modifier,
     viewModel: VehicleConditionViewModel = hiltViewModel(),
 ) {
@@ -87,6 +99,20 @@ fun VehicleConditionRoute(
                         effect.plate,
                         effect.pricePerDay,
                     )
+
+                is VehicleConditionEffect.NavigateToTripSummary ->
+                    onNavigateToTripSummary(
+                        effect.rentalId,
+                        effect.brand,
+                        effect.model,
+                        effect.plate,
+                        effect.durationSeconds,
+                        effect.distanceMeters,
+                        effect.totalPrice,
+                    )
+
+                is VehicleConditionEffect.ShowError ->
+                    snackbarHostState.showSnackbar(effect.message)
             }
         }
     }
@@ -108,6 +134,8 @@ fun VehicleConditionScreen(
     snackbarHostState: SnackbarHostState,
     modifier: Modifier = Modifier,
 ) {
+    val isBefore = state.mode == VehicleConditionMode.BEFORE
+
     Scaffold(
         containerColor = BackgroundDark,
         snackbarHost = { SnackbarHost(snackbarHostState) },
@@ -142,7 +170,11 @@ fun VehicleConditionScreen(
                 Column {
                     Text(text = "Araç durumu", style = headingXL, color = TextPrimaryDark)
                     Text(
-                        text = "Başlamadan önce ${state.totalSides} yönü çek",
+                        text = if (isBefore) {
+                            "Başlamadan önce ${state.totalSides} yönü çek"
+                        } else {
+                            "Teslim etmeden önce ${state.totalSides} yönü çek"
+                        },
                         style = bodyS,
                         color = TextTertiaryDark,
                     )
@@ -232,8 +264,8 @@ fun VehicleConditionScreen(
             Spacer(modifier = Modifier.height(16.dp))
 
             Button(
-                onClick = { onIntent(VehicleConditionIntent.StartRentalClicked) },
-                enabled = state.isStartEnabled,
+                onClick = { onIntent(VehicleConditionIntent.ConfirmClicked) },
+                enabled = state.isConfirmEnabled,
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(56.dp)
@@ -241,8 +273,30 @@ fun VehicleConditionScreen(
                 shape = RoundedCornerShape(18.dp),
                 colors = ButtonDefaults.buttonColors(containerColor = Primary, contentColor = TextOnPrimary),
             ) {
-                val suffix = if (state.isStartEnabled) "" else " · ${state.remainingCount} foto kaldı"
-                Text(text = "Kiralamayı Başlat$suffix", style = titleL, color = TextOnPrimary)
+                if (state.isSubmitting) {
+                    CircularProgressIndicator(color = TextOnPrimary, strokeWidth = 2.dp, modifier = Modifier.height(20.dp))
+                } else {
+                    val suffix = if (state.checkedCount == state.totalSides) "" else " · ${state.remainingCount} foto kaldı"
+                    if (isBefore) {
+                        Icon(
+                            imageVector = Icons.Default.LockOpen,
+                            contentDescription = null,
+                            tint = TextOnPrimary,
+                            modifier = Modifier.size(20.dp),
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(text = "Kilidi Aç ve Sürüşü Başlat$suffix", style = titleL, color = TextOnPrimary)
+                    } else {
+                        Icon(
+                            imageVector = Icons.Default.Lock,
+                            contentDescription = null,
+                            tint = TextOnPrimary,
+                            modifier = Modifier.size(20.dp),
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(text = "Kilitle$suffix", style = titleL, color = TextOnPrimary)
+                    }
+                }
             }
         }
     }
