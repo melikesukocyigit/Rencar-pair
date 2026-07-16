@@ -1,10 +1,11 @@
 package com.turkcell.rencar_pair.ui.vehiclecondition
 
-enum class VehicleSide(val label: String) {
-    ON("Ön"),
-    ARKA("Arka"),
-    SOL("Sol"),
-    SAG("Sağ"),
+// apiName, POST /rentals/{id}/photos ucunun bekledigi side degeriyle birebir eslesir.
+enum class VehicleSide(val label: String, val apiName: String) {
+    ON("Ön", "FRONT"),
+    ARKA("Arka", "BACK"),
+    SOL("Sol", "LEFT"),
+    SAG("Sağ", "RIGHT"),
 }
 
 enum class VehicleConditionMode {
@@ -23,16 +24,19 @@ data class VehicleConditionUiState(
     val durationSeconds: Long = 0L,
     val distanceMeters: Double = 0.0,
     val checkedSides: Set<VehicleSide> = emptySet(),
+    val uploadingSide: VehicleSide? = null,
     val isSubmitting: Boolean = false,
 ) {
     val totalSides: Int = VehicleSide.entries.size
     val checkedCount: Int get() = checkedSides.size
     val remainingCount: Int get() = totalSides - checkedCount
-    val isConfirmEnabled: Boolean get() = checkedCount == totalSides && !isSubmitting
+    val isConfirmEnabled: Boolean
+        get() = checkedCount == totalSides && !isSubmitting && uploadingSide == null
 }
 
 sealed interface VehicleConditionIntent {
-    data class PhotoMockCaptured(val side: VehicleSide) : VehicleConditionIntent
+    // Kamera/galeriden secilen gercek gorsel; BEFORE modunda sunucuya yuklenir.
+    data class PhotoCaptured(val side: VehicleSide, val bytes: ByteArray) : VehicleConditionIntent
     data object ConfirmClicked : VehicleConditionIntent
 }
 
