@@ -46,11 +46,11 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.turkcell.rencar_pair.ui.common.photo.PhotoSourceSheet
+import com.turkcell.rencar_pair.ui.common.photo.rememberPhotoPicker
 import com.turkcell.rencar_pair.ui.theme.*
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
-import java.io.File
-import java.io.FileOutputStream
 
 @Composable
 fun LicenseRoute(
@@ -109,27 +109,10 @@ fun LicenseScreen(
         }
     }
 
-    val selfieGalleryLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.GetContent()
-    ) { uri: Uri? ->
-        if (uri != null) {
-            onIntent(LicenseIntent.SelfieImageSelected(uri))
-        }
-    }
-
-    val selfieCameraLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.TakePicturePreview()
-    ) { bitmap: Bitmap? ->
-        if (bitmap != null) {
-            try {
-                val cacheFile = File(context.cacheDir, "selfie_temp.jpg")
-                FileOutputStream(cacheFile).use { out ->
-                    bitmap.compress(Bitmap.CompressFormat.JPEG, 90, out)
-                }
-                val uri = Uri.fromFile(cacheFile)
-                onIntent(LicenseIntent.SelfieImageSelected(uri))
-            } catch (_: Exception) { }
-        }
+    // Kamera+galeri secimi ortak ui/common/photo bilesenine cikarildi; arac durum
+    // fotograflari (VehicleCondition) da ayni bileseni kullanir.
+    val selfiePicker = rememberPhotoPicker { uri ->
+        onIntent(LicenseIntent.SelfieImageSelected(uri))
     }
 
     Scaffold(
@@ -576,83 +559,20 @@ fun LicenseScreen(
             Spacer(modifier = Modifier.height(24.dp))
         }
 
-        // Method selector bottom sheet for Selfie
+        // Method selector bottom sheet for Selfie (ortak bilesen, ui/common/photo)
         if (showSelfieSelector) {
-            ModalBottomSheet(
-                onDismissRequest = { showSelfieSelector = false },
-                containerColor = MaterialTheme.colorScheme.surface,
-                sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
-            ) {
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .navigationBarsPadding()
-                        .padding(24.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally
-                ) {
-                    Text(
-                        text = "Selfie yükleme yöntemi seçin",
-                        style = titleM,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.onBackground
-                    )
-                    Spacer(modifier = Modifier.height(24.dp))
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clip(RoundedCornerShape(12.dp))
-                            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
-                            .clickable {
-                                showSelfieSelector = false
-                                selfieCameraLauncher.launch(null)
-                            }
-                            .padding(16.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.CameraAlt,
-                            contentDescription = null,
-                            tint = Primary,
-                            modifier = Modifier.size(24.dp)
-                        )
-                        Spacer(modifier = Modifier.width(16.dp))
-                        Text(
-                            text = "Kamera ile çek",
-                            style = bodyM,
-                            fontWeight = FontWeight.SemiBold,
-                            color = MaterialTheme.colorScheme.onBackground
-                        )
-                    }
-                    Spacer(modifier = Modifier.height(12.dp))
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clip(RoundedCornerShape(12.dp))
-                            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
-                            .clickable {
-                                showSelfieSelector = false
-                                selfieGalleryLauncher.launch("image/*")
-                            }
-                            .padding(16.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Collections,
-                            contentDescription = null,
-                            tint = Primary,
-                            modifier = Modifier.size(24.dp)
-                        )
-                        Spacer(modifier = Modifier.width(16.dp))
-                        Text(
-                            text = "Galeriden seç",
-                            style = bodyM,
-                            fontWeight = FontWeight.SemiBold,
-                            color = MaterialTheme.colorScheme.onBackground
-                        )
-                    }
-                    Spacer(modifier = Modifier.height(16.dp))
-                }
-            }
+            PhotoSourceSheet(
+                title = "Selfie yükleme yöntemi seçin",
+                onCameraSelected = {
+                    showSelfieSelector = false
+                    selfiePicker.launchCamera("selfie_temp.jpg")
+                },
+                onGallerySelected = {
+                    showSelfieSelector = false
+                    selfiePicker.launchGallery()
+                },
+                onDismiss = { showSelfieSelector = false },
+            )
         }
     }
 }

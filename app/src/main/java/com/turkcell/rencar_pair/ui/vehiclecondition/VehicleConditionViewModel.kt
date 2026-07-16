@@ -44,10 +44,49 @@ class VehicleConditionViewModel @Inject constructor(
 
     fun onIntent(intent: VehicleConditionIntent) {
         when (intent) {
-            is VehicleConditionIntent.PhotoMockCaptured ->
-                _uiState.update { it.copy(checkedSides = it.checkedSides + intent.side) }
+            is VehicleConditionIntent.PhotoCaptured -> onPhotoCaptured(intent.side, intent.bytes)
 
             VehicleConditionIntent.ConfirmClicked -> confirm()
+        }
+    }
+
+    private fun onPhotoCaptured(side: VehicleSide, bytes: ByteArray) {
+        val state = _uiState.value
+        if (side in state.checkedSides || state.uploadingSide != null) return
+        when (state.mode) {
+            // Surus oncesi fotograflar sunucuya yuklenir: /start, 4 yon tamamlanmadan
+            // 409 dondugu icin isaretlemenin tek dogruluk kaynagi sunucu yanitidir.
+            VehicleConditionMode.BEFORE -> uploadPhoto(side, bytes)
+
+            // API v2'de teslim (AFTER) fotograflari icin bir uc nokta yok; cekim UX'i
+            // gercek kamera/galeriyle yapilir ama gorsel yalnizca yerel kontrol
+            // listesini isaretler.
+            VehicleConditionMode.AFTER ->
+                _uiState.update { it.copy(checkedSides = it.checkedSides + side) }
+        }
+    }
+
+    private fun uploadPhoto(side: VehicleSide, bytes: ByteArray) {
+        viewModelScope.launch {
+            _uiState.update { it.copy(uploadingSide = side) }
+            rentalRepository.uploadPhoto(
+                rentalId = _uiState.value.rentalId,
+                side = side.apiName,
+                fileBytes = bytes,
+                fileName = "${side.apiName.lowercase()}.jpg",
+            )
+                .onSuccess { photosState ->
+                    val uploadedSides = photosState.photos
+                        .mapNotNull { photo -> VehicleSide.entries.find { it.apiName == photo.side } }
+                        .toSet()
+                    _uiState.update { it.copy(uploadingSide = null, checkedSides = uploadedSides) }
+                }
+                .onFailure { error ->
+                    _uiState.update { it.copy(uploadingSide = null) }
+                    _effect.send(
+                        VehicleConditionEffect.ShowError(error.message ?: "Fotoğraf yüklenemedi."),
+                    )
+                }
         }
     }
 
@@ -62,17 +101,36 @@ class VehicleConditionViewModel @Inject constructor(
 
     private fun startRental(state: VehicleConditionUiState) {
         viewModelScope.launch {
-            _effect.send(
-                VehicleConditionEffect.NavigateToActiveRental(
-                    rentalId = state.rentalId,
-                    vehicleId = state.vehicleId,
-                    brand = state.brand,
-                    model = state.model,
-                    plate = state.plate,
-                    pricePerDay = state.pricePerDay,
-                ),
-            )
+            _uiState.update { it.copy(isSubmitting = true) }
+            rentalRepository.startRental(state.rentalId)
+                .onSuccess { navigateToActiveRental(state) }
+                .onFailure { error ->
+                    // Bazi planlarda kiralama olusturuldugu anda ACTIVE olabilir; start bu
+                    // durumda hata dondururse kullaniciyi cikmaza sokmadan devam edilir.
+                    val current = rentalRepository.getRentalDetails(state.rentalId).getOrNull()
+                    if (current?.status == "ACTIVE") {
+                        navigateToActiveRental(state)
+                    } else {
+                        _effect.send(
+                            VehicleConditionEffect.ShowError(error.message ?: "Sürüş başlatılamadı."),
+                        )
+                    }
+                }
+            _uiState.update { it.copy(isSubmitting = false) }
         }
+    }
+
+    private suspend fun navigateToActiveRental(state: VehicleConditionUiState) {
+        _effect.send(
+            VehicleConditionEffect.NavigateToActiveRental(
+                rentalId = state.rentalId,
+                vehicleId = state.vehicleId,
+                brand = state.brand,
+                model = state.model,
+                plate = state.plate,
+                pricePerDay = state.pricePerDay,
+            ),
+        )
     }
 
     private fun returnVehicle(state: VehicleConditionUiState) {

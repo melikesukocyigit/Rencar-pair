@@ -36,14 +36,20 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.turkcell.rencar_pair.ui.common.photo.PhotoSourceSheet
+import com.turkcell.rencar_pair.ui.common.photo.readImageBytes
+import com.turkcell.rencar_pair.ui.common.photo.rememberPhotoPicker
 import com.turkcell.rencar_pair.ui.theme.BackgroundDark
 import com.turkcell.rencar_pair.ui.theme.BorderSubtleDark
 import com.turkcell.rencar_pair.ui.theme.Primary
@@ -135,6 +141,27 @@ fun VehicleConditionScreen(
     modifier: Modifier = Modifier,
 ) {
     val isBefore = state.mode == VehicleConditionMode.BEFORE
+    val context = LocalContext.current
+
+    // Ehliyet dogrulamadaki foto deseninin ortak bilesene cikarilmis hali
+    // (ui/common/photo): yon kartina dokun -> kamera/galeri sec -> gorsel byte'lari
+    // PhotoCaptured intent'iyle ViewModel'e akar.
+    var pendingSide by remember { mutableStateOf<VehicleSide?>(null) }
+    var showSourceSheet by remember { mutableStateOf(false) }
+    val photoPicker = rememberPhotoPicker { uri ->
+        val side = pendingSide
+        pendingSide = null
+        if (side != null) {
+            val bytes = readImageBytes(context.contentResolver, uri)
+            if (bytes != null) {
+                onIntent(VehicleConditionIntent.PhotoCaptured(side, bytes))
+            }
+        }
+    }
+    val requestPhoto: (VehicleSide) -> Unit = { side ->
+        pendingSide = side
+        showSourceSheet = true
+    }
 
     Scaffold(
         containerColor = BackgroundDark,
@@ -206,13 +233,15 @@ fun VehicleConditionScreen(
                 VehicleSidePhotoCard(
                     side = VehicleSide.ON,
                     checked = VehicleSide.ON in state.checkedSides,
-                    onClick = { onIntent(VehicleConditionIntent.PhotoMockCaptured(VehicleSide.ON)) },
+                    isUploading = state.uploadingSide == VehicleSide.ON,
+                    onClick = { requestPhoto(VehicleSide.ON) },
                     modifier = Modifier.weight(1f),
                 )
                 VehicleSidePhotoCard(
                     side = VehicleSide.ARKA,
                     checked = VehicleSide.ARKA in state.checkedSides,
-                    onClick = { onIntent(VehicleConditionIntent.PhotoMockCaptured(VehicleSide.ARKA)) },
+                    isUploading = state.uploadingSide == VehicleSide.ARKA,
+                    onClick = { requestPhoto(VehicleSide.ARKA) },
                     modifier = Modifier.weight(1f),
                 )
             }
@@ -226,13 +255,15 @@ fun VehicleConditionScreen(
                 VehicleSidePhotoCard(
                     side = VehicleSide.SOL,
                     checked = VehicleSide.SOL in state.checkedSides,
-                    onClick = { onIntent(VehicleConditionIntent.PhotoMockCaptured(VehicleSide.SOL)) },
+                    isUploading = state.uploadingSide == VehicleSide.SOL,
+                    onClick = { requestPhoto(VehicleSide.SOL) },
                     modifier = Modifier.weight(1f),
                 )
                 VehicleSidePhotoCard(
                     side = VehicleSide.SAG,
                     checked = VehicleSide.SAG in state.checkedSides,
-                    onClick = { onIntent(VehicleConditionIntent.PhotoMockCaptured(VehicleSide.SAG)) },
+                    isUploading = state.uploadingSide == VehicleSide.SAG,
+                    onClick = { requestPhoto(VehicleSide.SAG) },
                     modifier = Modifier.weight(1f),
                 )
             }
@@ -300,12 +331,33 @@ fun VehicleConditionScreen(
             }
         }
     }
+
+    if (showSourceSheet) {
+        PhotoSourceSheet(
+            title = "${pendingSide?.label ?: ""} fotoğrafı için yöntem seçin",
+            onCameraSelected = {
+                showSourceSheet = false
+                pendingSide?.let { side ->
+                    photoPicker.launchCamera("condition_${side.apiName.lowercase()}.jpg")
+                }
+            },
+            onGallerySelected = {
+                showSourceSheet = false
+                photoPicker.launchGallery()
+            },
+            onDismiss = {
+                showSourceSheet = false
+                pendingSide = null
+            },
+        )
+    }
 }
 
 @Composable
 private fun VehicleSidePhotoCard(
     side: VehicleSide,
     checked: Boolean,
+    isUploading: Boolean,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -318,7 +370,7 @@ private fun VehicleSidePhotoCard(
             .clip(RoundedCornerShape(16.dp))
             .background(backgroundColor)
             .border(width = 1.dp, color = borderColor, shape = RoundedCornerShape(16.dp))
-            .clickable(enabled = !checked, onClick = onClick),
+            .clickable(enabled = !checked && !isUploading, onClick = onClick),
     ) {
         Column(modifier = Modifier.fillMaxSize()) {
             Row(
@@ -354,7 +406,13 @@ private fun VehicleSidePhotoCard(
             }
 
             Box(modifier = Modifier.weight(1f).fillMaxWidth(), contentAlignment = Alignment.Center) {
-                if (checked) {
+                if (isUploading) {
+                    CircularProgressIndicator(
+                        color = Primary,
+                        strokeWidth = 2.dp,
+                        modifier = Modifier.size(28.dp),
+                    )
+                } else if (checked) {
                     Icon(
                         imageVector = Icons.Default.DirectionsCar,
                         contentDescription = null,
