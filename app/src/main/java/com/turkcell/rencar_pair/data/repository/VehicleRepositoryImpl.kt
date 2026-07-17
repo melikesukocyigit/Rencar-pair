@@ -10,8 +10,8 @@ class VehicleRepositoryImpl @Inject constructor(
     private val vehicleService: VehicleService,
 ) : VehicleRepository {
 
-    override suspend fun getAvailableVehicles(): Result<List<VehicleResponseDto>> = runCatching {
-        val response = vehicleService.getAvailableVehicles()
+    override suspend fun getAvailableVehicles(page: Int, limit: Int): Result<List<VehicleResponseDto>> = runCatching {
+        val response = vehicleService.getAvailableVehicles(page = page, limit = limit)
         if (!response.isSuccessful) error(response.apiMessage())
         response.body() ?: emptyList()
     }

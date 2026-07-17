@@ -434,3 +434,15 @@
 - Uygulama: `pollActiveRental()` (main, 5 sn'de bir `GET /rentals/active`) ve `observeVehicleLocation()` (bu dal, Socket.IO `vehiclePositionStream()`) `ActiveRentalViewModel.init` içinde birlikte çalışıyor — biri ücret/mesafeyi, diğeri haritadaki ayrı araç marker'ını besliyor, aralarında bağımlılık yok. Ekranın "Anlık ücret" alanı `state.currentCost` (sunucu) gösteriyor; eski istemci taraflı `liveCost`/`pricePerDay` alanları tamamen kaldırıldı, bunun yerine yalnızca `startFee` (backend'den gerçek sabit başlangıç ücreti) anlık ücrete dahil ediliyor. Harita kamerasının aracı takip etmesi (`fitCameraToPoints`) ve telefonun kendi konum noktası (`enableLiveLocation`, artık `onLocationUpdate` no-op) birbirinden bağımsız kaldı.
 
 - Doğrulama: Birleştirme sonrası `./gradlew :app:assembleDebug` başarıyla tamamlandı; kalan çakışma işareti kalmadığı `git diff --check` ile doğrulandı.
+
+### Ana Harita — Araç Sayısı 20 ile Sabitlenmiş (Sayfalama Yok), Kategori Gerçek segment Alanını Kullanmıyor
+
+- Karar: `VehicleRepository.getAvailableVehicles()` parametresiz çağrılıyordu; `VehicleService.kt`'deki Retrofit varsayılanı (`page=1, limit=20`) hiç override edilmediğinden Ana Harita her zaman yalnızca ilk 20 müsait aracı gösteriyordu. Canlı API'yi doğrudan sorguladım (`limit=100` ile): backend'de gerçekte **en az 146 müsait araç** var (sayfa 1: 100, sayfa 2: 46). "Yakınında 20 araç" ifadesi uydurma bir sabit değil, gerçek `visibleVehicles.size`'dan geliyordu, ama görülen veri kümesi eksikti.
+
+- Son Güncelleme Tarihi: 18.07.2026
+
+- Uygulama (Batch 1/2 — veri katmanı): `VehicleRepository`/`VehicleRepositoryImpl.getAvailableVehicles()` artık `page`/`limit` parametrelerini kabul ediyor (varsayılan `page=1, limit=20`, geriye uyumlu). `VehicleDtos.kt`'deki `VehicleResponseDto` zaten `segment`, `fuelPercent`, `rangeKm`, `transmission`, `seats`, `pricePerMinute`, `pricePerHour` alanlarını taşıyor (daha önceki bir PR'da eklenmiş) — bu adımda DTO'ya dokunulmadı.
+
+- Ayrıca Gözlemlenen (Batch 2'de ele alınacak): `HomeViewModel.mapApiTypeToCategory()`, aracın gövde tipinden (`SEDAN/SUV/HATCHBACK/STATION/MINIVAN`) Ekonomik/Konfor/SUV kategorisi tahmin ediyor; backend'in asıl bunun için var olan `segment` alanı (`ECONOMY/COMFORT/SUV`) hiç kullanılmıyor. Canlı 100 aracı karşılaştırdım: **45/100 araç (%45) bu heuristik yüzünden yanlış kategori sekmesine düşüyor**. `HomeScreen.kt`'deki `PLACEHOLDER_FUEL_PERCENT/RANGE_KM/TRANSMISSION/SEAT_COUNT` sabitleri de artık API'nin sağladığı gerçek `fuelPercent/rangeKm/transmission/seats` alanlarıyla değiştirilebilir durumda.
+
+- Sayfalama Yaklaşımı: Kullanıcıyla görüşüldü — yeni bir kaydırılabilir liste UI'ı eklemek yerine (backend'de zaten konum/görünüm alanına göre filtre olmadığından map-pan tetiklemeli bir yaklaşım mümkün değil), ilk 20 gösterildikten sonra kalan sayfalar arka planda otomatik çekilip haritaya eklenecek; "Yakınında N araç" sayısı zamanla gerçek toplama (146+) doğru artacak.
