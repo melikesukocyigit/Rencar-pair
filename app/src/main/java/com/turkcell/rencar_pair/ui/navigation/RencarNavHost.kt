@@ -152,10 +152,14 @@ fun RencarNavHost(
 
         composable(ROUTE_REGISTER) {
             RegisterRoute(
-                onNavigateToOnboarding = {
-                    navController.popBackStack(ROUTE_ONBOARDING, inclusive = false)
+                onNavigateToLogin = {
+                    // Login'e giderken Register'i backstack'ten cikariyoruz: kayit sonrasi
+                    // (veya "zaten hesabim var" linkinden) geri tusuyla dolu kayit formuna
+                    // donulmesin.
+                    navController.navigate(ROUTE_LOGIN) {
+                        popUpTo(ROUTE_REGISTER) { inclusive = true }
+                    }
                 },
-                onNavigateToLogin = { navController.navigate(ROUTE_LOGIN) },
                 onBack            = { navController.popBackStack() },
             )
         }
