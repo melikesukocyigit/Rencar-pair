@@ -278,6 +278,25 @@ fun HomeRoute(
                 false
             }
         }
+
+        // Harita her hareket edip durunca (zoom +/-, pan, "konumuma git") o anki
+        // gercek gorunur sinirlari ViewModel'e bildirir; "Yakinimda N arac" bu
+        // sinirlar icindeki araclari sayar (bkz. HomeUiState.nearbyVehicleCount).
+        fun reportVisibleBounds() {
+            val bounds = map.projection.visibleRegion.latLngBounds
+            viewModel.onIntent(
+                HomeIntent.MapBoundsChanged(
+                    GeoBounds(
+                        north = bounds.latitudeNorth,
+                        south = bounds.latitudeSouth,
+                        east = bounds.longitudeEast,
+                        west = bounds.longitudeWest,
+                    ),
+                ),
+            )
+        }
+        map.addOnCameraIdleListener { reportVisibleBounds() }
+        reportVisibleBounds()
     }
 
     HomeScreen(

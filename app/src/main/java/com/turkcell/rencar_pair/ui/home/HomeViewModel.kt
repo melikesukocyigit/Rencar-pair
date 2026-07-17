@@ -91,6 +91,9 @@ class HomeViewModel @Inject constructor(
             is HomeIntent.VehicleSelected ->
                 _uiState.update { it.copy(selectedVehicleId = intent.vehicleId) }
 
+            is HomeIntent.MapBoundsChanged ->
+                _uiState.update { it.copy(visibleMapBounds = intent.bounds) }
+
             HomeIntent.VehicleDetailDismissed ->
                 _uiState.update { it.copy(selectedVehicleId = null) }
 
@@ -190,9 +193,6 @@ class HomeViewModel @Inject constructor(
 
     private fun locateMe() {
         if (_uiState.value.hasLocationPermission) {
-            // "Yakinimda N arac" bu andan itibaren tum listeyi degil, gercekten
-            // yakindaki araclari saysin (bkz. HomeUiState.nearbyVehicleCount).
-            _uiState.update { it.copy(isFocusedOnUserLocation = true) }
             sendEffect(HomeEffect.CenterOnUserLocation)
         } else {
             sendEffect(HomeEffect.RequestLocationPermission)

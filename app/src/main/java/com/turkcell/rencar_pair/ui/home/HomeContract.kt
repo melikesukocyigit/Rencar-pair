@@ -25,10 +25,26 @@ private fun haversineMeters(from: LatLng, to: LatLng): Double {
     return 2 * EARTH_RADIUS_METERS * asin(sqrt(h))
 }
 
-// "Konumuma git" butonuna basildiktan sonra "Yakinimda N arac" gercekten yakindaki
-// araclari saysin diye kullanilan esik. Backend'de konum bazli bir filtre parametresi
-// olmadigindan (GET /vehicles'ta lat/lng/radius yok) bu filtre tamamen istemci
-// tarafinda, gercek Haversine mesafesiyle yapiliyor.
+// Haritanin o an ekranda gosterdigi gercek sinirlar (MapLibreMap.projection.
+// visibleRegion.latLngBounds). Backend'de konum/gorunum alanina gore bir filtre
+// parametresi olmadigindan (GET /vehicles'ta lat/lng/bounds yok) "Yakinimda N arac"
+// tamamen istemci tarafinda hesaplaniyor.
+data class GeoBounds(
+    val north: Double,
+    val south: Double,
+    val east: Double,
+    val west: Double,
+) {
+    fun contains(point: LatLng): Boolean =
+        point.latitude in south..north && point.longitude in west..east
+}
+
+// "Konumuma git" haritayi kullanicinin GPS'ine (zoom 15) kilitliyor; bu kadar
+// yakin zoom'da gorunen alan cok kucuk olabiliyor ve icinde gercekten 0 arac
+// olabiliyor, bu da yaniltici "0 arac" gosterimine yol aciyordu. Bu yuzden sayac,
+// gorunen alan ile kullanicinin 5 km yaricapinin BIRLESIMINI (OR) sayiyor: "-" ile
+// uzaklasinca gorunen alan buyudukce sayi dogru artiyor, ama "konumuma git" sonrasi
+// zoom cok yakinken de en az 5 km icindekiler her zaman sayima dahil oluyor.
 private const val NEARBY_RADIUS_METERS = 5_000.0
 
 // Gercek rota/trafik verisi olmadigindan varsayilan bir ortalama sehir-ici surus hizi
@@ -96,11 +112,10 @@ data class HomeUiState(
     val selectedVehicleId: String? = null,
     val isLocationAccuracyHigh: Boolean = true,
     val activeRental: ActiveRentalSummary? = null,
-    // "Konumuma git" butonuna basilinca true olur; "Yakinimda N arac" o andan
-    // itibaren tum listeyi degil, gercekten NEARBY_RADIUS_METERS icindeki araclari
-    // sayar. Harita Turkiye geneli gorunumdeyken (buton hic basilmadan) tum
-    // eslesen araclarin sayisi gosterilmeye devam eder.
-    val isFocusedOnUserLocation: Boolean = false,
+    // Haritanin o anki gercek gorunur alani; MapLibreMap'in OnCameraIdleListener'i
+    // her kamera hareketinde (zoom/pan) guncelliyor. Harita hazir olmadan (ilk
+    // frame) null kalir.
+    val visibleMapBounds: GeoBounds? = null,
 ) {
     val visibleVehicles: List<VehicleMarker>
         get() = if (selectedFilter == CategoryFilter.TUMU) {
@@ -111,9 +126,13 @@ data class HomeUiState(
 
     val nearbyVehicleCount: Int
         get() {
+            val bounds = visibleMapBounds
             val location = userLocation
-            if (!isFocusedOnUserLocation || location == null) return visibleVehicles.size
-            return visibleVehicles.count { haversineMeters(location, it.position) <= NEARBY_RADIUS_METERS }
+            if (bounds == null && location == null) return visibleVehicles.size
+            return visibleVehicles.count { vehicle ->
+                (bounds != null && bounds.contains(vehicle.position)) ||
+                    (location != null && haversineMeters(location, vehicle.position) <= NEARBY_RADIUS_METERS)
+            }
         }
 
     val selectedVehicle: VehicleMarker?
@@ -141,6 +160,7 @@ sealed interface HomeIntent {
     data class UserLocationChanged(val location: LatLng) : HomeIntent
     data class SearchQueryChanged(val query: String) : HomeIntent
     data class VehicleSelected(val vehicleId: String) : HomeIntent
+    data class MapBoundsChanged(val bounds: GeoBounds) : HomeIntent
     data object VehicleDetailDismissed : HomeIntent
     data object LocateMeClicked : HomeIntent
     data object FindNearestVehicleClicked : HomeIntent
