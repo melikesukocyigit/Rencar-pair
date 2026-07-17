@@ -263,9 +263,10 @@ fun ActiveRentalScreen(
                         vehicleLocation = state.vehicleLocation,
                         vehicleId = state.vehicleId,
                         vehicleLabel = state.plate.ifBlank { "Araç" },
-                        onLocationUpdate = { location ->
-                            onIntent(ActiveRentalIntent.LocationUpdated(ActiveRentalLatLng(location.latitude, location.longitude)))
-                        },
+                        // Mesafe artik sunucudan periyodik sorgulanan gercek distanceKm ile
+                        // gosteriliyor (bkz. ActiveRentalViewModel.pollActiveRental); bu
+                        // callback yalnizca haritadaki mavi noktayi guncelliyor.
+                        onLocationUpdate = {},
                     )
                 }
 
@@ -326,7 +327,7 @@ fun ActiveRentalScreen(
                     Row(horizontalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.fillMaxWidth()) {
                         StatBlock(
                             label = "Anlık ücret",
-                            value = "${"%.2f".format(state.liveCost).replace('.', ',')} ₺",
+                            value = "${"%.2f".format(state.currentCost).replace('.', ',')} ₺",
                             valueColor = Primary,
                             textTertiary = textTertiary,
                             modifier = Modifier.weight(1f),

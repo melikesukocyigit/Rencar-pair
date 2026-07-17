@@ -44,6 +44,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.turkcell.rencar_pair.ui.theme.BackgroundDark
 import com.turkcell.rencar_pair.ui.theme.BorderSubtleDark
+import com.turkcell.rencar_pair.ui.theme.ErrorTextDark
 import com.turkcell.rencar_pair.ui.theme.Primary
 import com.turkcell.rencar_pair.ui.theme.SuccessBackgroundDark
 import com.turkcell.rencar_pair.ui.theme.SuccessStrongDark
@@ -202,11 +203,24 @@ fun ReservationScreen(
                     style = bodyS,
                     color = TextTertiaryDark,
                 )
-                Text(
-                    text = "~₺${state.estimatedCost.toInt()}",
-                    style = titleL,
-                    color = TextPrimaryDark,
-                )
+                when {
+                    state.isQuoteLoading -> CircularProgressIndicator(
+                        modifier = Modifier.size(16.dp),
+                        strokeWidth = 2.dp,
+                        color = Primary,
+                    )
+                    state.quote != null -> Text(
+                        text = "~₺${state.quote.estimatedTotal.toInt()}",
+                        style = titleL,
+                        color = TextPrimaryDark,
+                    )
+                    state.quoteError != null -> Text(
+                        text = "Fiyat alınamadı",
+                        style = bodyS,
+                        color = ErrorTextDark,
+                    )
+                    else -> Text(text = "-", style = titleL, color = TextPrimaryDark)
+                }
             }
 
             Spacer(modifier = Modifier.height(20.dp))

@@ -133,26 +133,58 @@ class VehicleConditionViewModel @Inject constructor(
         )
     }
 
+    // Eski POST rentals/{id}/return yalniz DAILY plani icin gecerli (docs/decisions.md);
+    // PER_MINUTE/HOURLY POST rentals/{id}/finish gerektiriyor. Ekranin elinde hangi
+    // plana ait oldugu bilgisi yok, bu yuzden bitirmeden hemen once sunucudan sorulur
+    // (nav-arg olarak tasimak yerine tek ek sorgu - rentalId zaten elde var).
     private fun returnVehicle(state: VehicleConditionUiState) {
         viewModelScope.launch {
             _uiState.update { it.copy(isSubmitting = true) }
-            val result = rentalRepository.returnVehicle(state.rentalId)
-            _uiState.update { it.copy(isSubmitting = false) }
-            result
-                .onSuccess { rental ->
-                    _effect.send(
-                        VehicleConditionEffect.NavigateToTripSummary(
-                            rentalId = rental.id,
-                            brand = state.brand,
-                            model = state.model,
-                            plate = state.plate,
-                            durationSeconds = state.durationSeconds,
-                            distanceMeters = state.distanceMeters,
-                            totalPrice = rental.totalPrice ?: 0.0,
-                        ),
-                    )
-                }
-                .onFailure { _effect.send(VehicleConditionEffect.ShowError(it.message ?: "Kiralama bitirilemedi.")) }
+
+            val rentalDetails = rentalRepository.getRentalDetails(state.rentalId).getOrNull()
+            if (rentalDetails == null) {
+                _uiState.update { it.copy(isSubmitting = false) }
+                _effect.send(VehicleConditionEffect.ShowError("Kiralama durumu doğrulanamadı. Lütfen tekrar deneyin."))
+                return@launch
+            }
+
+            if (rentalDetails.plan == "DAILY") {
+                val result = rentalRepository.returnVehicle(state.rentalId)
+                _uiState.update { it.copy(isSubmitting = false) }
+                result
+                    .onSuccess { rental ->
+                        _effect.send(
+                            VehicleConditionEffect.NavigateToTripSummary(
+                                rentalId = rental.id,
+                                brand = state.brand,
+                                model = state.model,
+                                plate = state.plate,
+                                durationSeconds = state.durationSeconds,
+                                distanceMeters = state.distanceMeters,
+                                totalPrice = rental.totalPrice ?: 0.0,
+                            ),
+                        )
+                    }
+                    .onFailure { _effect.send(VehicleConditionEffect.ShowError(it.message ?: "Kiralama bitirilemedi.")) }
+            } else {
+                val result = rentalRepository.finishRental(state.rentalId)
+                _uiState.update { it.copy(isSubmitting = false) }
+                result
+                    .onSuccess { finished ->
+                        _effect.send(
+                            VehicleConditionEffect.NavigateToTripSummary(
+                                rentalId = finished.id,
+                                brand = state.brand,
+                                model = state.model,
+                                plate = state.plate,
+                                durationSeconds = state.durationSeconds,
+                                distanceMeters = state.distanceMeters,
+                                totalPrice = finished.totalPrice ?: 0.0,
+                            ),
+                        )
+                    }
+                    .onFailure { _effect.send(VehicleConditionEffect.ShowError(it.message ?: "Kiralama bitirilemedi.")) }
+            }
         }
     }
 }

@@ -63,7 +63,6 @@ import com.turkcell.rencar_pair.ui.theme.titleS
 
 @Composable
 fun RegisterRoute(
-    onNavigateToOnboarding: () -> Unit,
     onNavigateToLogin: () -> Unit,
     onBack: () -> Unit,
     modifier: Modifier = Modifier,
@@ -76,8 +75,11 @@ fun RegisterRoute(
         viewModel.effect.collect { effect ->
             when (effect) {
                 is RegisterEffect.ShowSuccessAndNavigate -> {
+                    // Kayit sonrasi kullaniciyi dogrudan giris ekranina yonlendiriyoruz
+                    // (snackbar zaten "giris yapin" diyor). Ana ekrana/onboarding'e
+                    // atmak yerine login, mesajla tutarli ve dogal akis.
                     snackbarHostState.showSnackbar("Kayıt başarılı! Lütfen giriş yapın.")
-                    onNavigateToOnboarding()
+                    onNavigateToLogin()
                 }
                 is RegisterEffect.ShowError -> snackbarHostState.showSnackbar(effect.message)
             }
