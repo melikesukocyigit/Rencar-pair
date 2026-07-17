@@ -5,6 +5,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.turkcell.rencar_pair.data.repository.RentalRepository
 import com.turkcell.rencar_pair.data.repository.ReservationRepository
+import com.turkcell.rencar_pair.data.repository.VehicleRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -23,6 +24,7 @@ import javax.inject.Inject
 class ReservationViewModel @Inject constructor(
     private val rentalRepository: RentalRepository,
     private val reservationRepository: ReservationRepository,
+    private val vehicleRepository: VehicleRepository,
     savedStateHandle: SavedStateHandle,
 ) : ViewModel() {
 
@@ -40,15 +42,52 @@ class ReservationViewModel @Inject constructor(
     private val _effect = Channel<ReservationEffect>(Channel.BUFFERED)
     val effect = _effect.receiveAsFlow()
 
+    // Plan hizlica degistirilirse eski bir quote cevabinin gec gelip state'i yanlis
+    // plana ait fiyatla ezmesini engellemek icin son istegin kimligi tutulur.
+    private var quoteRequestId = 0
+
+    init {
+        loadQuote(_uiState.value.selectedPlan)
+    }
+
     fun onIntent(intent: ReservationIntent) {
         when (intent) {
-            is ReservationIntent.PlanSelected ->
+            is ReservationIntent.PlanSelected -> {
                 _uiState.update { it.copy(selectedPlan = intent.plan) }
+                loadQuote(intent.plan)
+            }
 
             is ReservationIntent.TermsToggled ->
                 _uiState.update { it.copy(termsAccepted = intent.accepted) }
 
             ReservationIntent.ConfirmClicked -> confirmReservation()
+        }
+    }
+
+    // Ekranda sure secici olmadigindan, estimatedDurationLabel ile ayni sabit sureler
+    // quote sorgusunda da kullanilir (Dakikalik->30dk, Saatlik->60dk, Gunluk->1440dk).
+    private fun minutesFor(plan: RentalPlan): Int = when (plan) {
+        RentalPlan.DAKIKALIK -> 30
+        RentalPlan.SAATLIK -> 60
+        RentalPlan.GUNLUK -> 1440
+    }
+
+    private fun loadQuote(plan: RentalPlan) {
+        val requestId = ++quoteRequestId
+        val vehicleId = _uiState.value.vehicleId
+        viewModelScope.launch {
+            _uiState.update { it.copy(isQuoteLoading = true, quoteError = null) }
+            val result = vehicleRepository.getQuote(vehicleId, apiPlanFor(plan), minutesFor(plan))
+            if (requestId != quoteRequestId) return@launch // plan bu sirada degisti, cevap eski
+            result
+                .onSuccess { quote ->
+                    _uiState.update { it.copy(isQuoteLoading = false, quote = quote, quoteError = null) }
+                }
+                .onFailure { error ->
+                    _uiState.update {
+                        it.copy(isQuoteLoading = false, quote = null, quoteError = error.message ?: "Fiyat alınamadı.")
+                    }
+                }
         }
     }
 
@@ -73,7 +112,7 @@ class ReservationViewModel @Inject constructor(
             }
 
             val endDate = endDateFor(state.selectedPlan)
-            val result = rentalRepository.createRental(state.vehicleId, endDate)
+            val result = rentalRepository.createRental(state.vehicleId, endDate, apiPlanFor(state.selectedPlan))
             _uiState.update { it.copy(isSubmitting = false) }
             result
                 .onSuccess { rental ->
@@ -92,17 +131,22 @@ class ReservationViewModel @Inject constructor(
         }
     }
 
-    // Tasarimda bitis tarihi secen bir alan yok; secilen plana gore otomatik bir sure
-    // hesaplaniyor (Dakikalik->+30dk, Saatlik->+1sa, Gunluk->+1gun). Gercek bitis,
-    // kullanici araci iade ettiginde (POST /rentals/{id}/return) belirlenecek.
+    // API v2: plan alani wire degerleri (RentalDtos.kt) Turkce enum adlarindan farkli.
+    private fun apiPlanFor(plan: RentalPlan): String = when (plan) {
+        RentalPlan.DAKIKALIK -> "PER_MINUTE"
+        RentalPlan.SAATLIK -> "HOURLY"
+        RentalPlan.GUNLUK -> "DAILY"
+    }
+
+    // endDate yalniz DAILY planda zorunlu/anlamli (RentalDtos.kt:8); PER_MINUTE/HOURLY
+    // kiralamalar endDate'e ulasarak degil ayri bir /rentals/{id}/finish cagrisiyla
+    // bitiyor (Batch 2 karari, docs/decisions.md), bu yuzden bu planlarda null gonderilir.
     // java.time yerine SimpleDateFormat kullanildi: minSdk 24'te java.time,
     // core library desugaring olmadan calismiyor.
-    private fun endDateFor(plan: RentalPlan): String {
-        val calendar = Calendar.getInstance(TimeZone.getTimeZone("UTC"))
-        when (plan) {
-            RentalPlan.DAKIKALIK -> calendar.add(Calendar.MINUTE, 30)
-            RentalPlan.SAATLIK -> calendar.add(Calendar.HOUR_OF_DAY, 1)
-            RentalPlan.GUNLUK -> calendar.add(Calendar.DAY_OF_YEAR, 1)
+    private fun endDateFor(plan: RentalPlan): String? {
+        if (plan != RentalPlan.GUNLUK) return null
+        val calendar = Calendar.getInstance(TimeZone.getTimeZone("UTC")).apply {
+            add(Calendar.DAY_OF_YEAR, 1)
         }
         val formatter = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'", Locale.US).apply {
             timeZone = TimeZone.getTimeZone("UTC")
