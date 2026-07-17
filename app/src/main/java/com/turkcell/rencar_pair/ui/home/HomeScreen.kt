@@ -278,6 +278,25 @@ fun HomeRoute(
                 false
             }
         }
+
+        // Harita her hareket edip durunca (zoom +/-, pan, "konumuma git") o anki
+        // gercek gorunur sinirlari ViewModel'e bildirir; "Yakinimda N arac" bu
+        // sinirlar icindeki araclari sayar (bkz. HomeUiState.nearbyVehicleCount).
+        fun reportVisibleBounds() {
+            val bounds = map.projection.visibleRegion.latLngBounds
+            viewModel.onIntent(
+                HomeIntent.MapBoundsChanged(
+                    GeoBounds(
+                        north = bounds.latitudeNorth,
+                        south = bounds.latitudeSouth,
+                        east = bounds.longitudeEast,
+                        west = bounds.longitudeWest,
+                    ),
+                ),
+            )
+        }
+        map.addOnCameraIdleListener { reportVisibleBounds() }
+        reportVisibleBounds()
     }
 
     HomeScreen(
@@ -382,7 +401,7 @@ fun HomeScreen(
                 Spacer(modifier = Modifier.height(12.dp))
 
                 NearbyVehiclesCard(
-                    nearbyCount = state.visibleVehicles.size,
+                    nearbyCount = state.nearbyVehicleCount,
                     selectedFilter = state.selectedFilter,
                     onFilterSelected = { onIntent(HomeIntent.FilterSelected(it)) },
                     hasLocationPermission = state.hasLocationPermission,
@@ -407,13 +426,6 @@ fun HomeScreen(
 @Composable
 private fun isDarkHome(): Boolean =
     MaterialTheme.colorScheme.background != Color(BackgroundLight.value)
-
-// TODO: Gercek API arac telemetri alanlarini (yakit, menzil, vites, koltuk) saglamiyor.
-// Backend bu alanlari eklediginde bu sabitler kaldirilip gercek degerlerle degistirilecek.
-private const val PLACEHOLDER_FUEL_PERCENT = 72
-private const val PLACEHOLDER_RANGE_KM = 480
-private const val PLACEHOLDER_TRANSMISSION = "Manuel"
-private const val PLACEHOLDER_SEAT_COUNT = 5
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -506,7 +518,7 @@ private fun VehicleDetailBottomSheet(
                         Text(text = "Yakıt", style = labelS, color = labelColor)
                     }
                     Text(
-                        text = "%$PLACEHOLDER_FUEL_PERCENT",
+                        text = "%${vehicle.fuelPercent}",
                         style = statValue,
                         color = valueColor,
                         modifier = Modifier.padding(top = 5.dp),
@@ -521,7 +533,7 @@ private fun VehicleDetailBottomSheet(
                     ) {
                         Box(
                             modifier = Modifier
-                                .fillMaxWidth(PLACEHOLDER_FUEL_PERCENT / 100f)
+                                .fillMaxWidth(vehicle.fuelPercent / 100f)
                                 .height(5.dp)
                                 .clip(RoundedCornerShape(3.dp))
                                 .background(fuelColor),
@@ -549,7 +561,7 @@ private fun VehicleDetailBottomSheet(
                         Text(text = "Menzil", style = labelS, color = labelColor)
                     }
                     Text(
-                        text = "~$PLACEHOLDER_RANGE_KM km",
+                        text = "~${vehicle.rangeKm} km",
                         style = statValue,
                         color = valueColor,
                         modifier = Modifier.padding(top = 5.dp),
@@ -586,7 +598,7 @@ private fun VehicleDetailBottomSheet(
                     )
                     Column {
                         Text(text = "Vites", style = labelS, color = labelColor)
-                        Text(text = PLACEHOLDER_TRANSMISSION, style = titleXS, color = valueColor)
+                        Text(text = vehicle.transmissionLabel, style = titleXS, color = valueColor)
                     }
                 }
                 Row(
@@ -606,7 +618,7 @@ private fun VehicleDetailBottomSheet(
                     )
                     Column {
                         Text(text = "Koltuk", style = labelS, color = labelColor)
-                        Text(text = "$PLACEHOLDER_SEAT_COUNT kişi", style = titleXS, color = valueColor)
+                        Text(text = "${vehicle.seats} kişi", style = titleXS, color = valueColor)
                     }
                 }
             }

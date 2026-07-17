@@ -25,6 +25,28 @@ private fun haversineMeters(from: LatLng, to: LatLng): Double {
     return 2 * EARTH_RADIUS_METERS * asin(sqrt(h))
 }
 
+// Haritanin o an ekranda gosterdigi gercek sinirlar (MapLibreMap.projection.
+// visibleRegion.latLngBounds). Backend'de konum/gorunum alanina gore bir filtre
+// parametresi olmadigindan (GET /vehicles'ta lat/lng/bounds yok) "Yakinimda N arac"
+// tamamen istemci tarafinda hesaplaniyor.
+data class GeoBounds(
+    val north: Double,
+    val south: Double,
+    val east: Double,
+    val west: Double,
+) {
+    fun contains(point: LatLng): Boolean =
+        point.latitude in south..north && point.longitude in west..east
+}
+
+// "Konumuma git" haritayi kullanicinin GPS'ine (zoom 15) kilitliyor; bu kadar
+// yakin zoom'da gorunen alan cok kucuk olabiliyor ve icinde gercekten 0 arac
+// olabiliyor, bu da yaniltici "0 arac" gosterimine yol aciyordu. Bu yuzden sayac,
+// gorunen alan ile kullanicinin 5 km yaricapinin BIRLESIMINI (OR) sayiyor: "-" ile
+// uzaklasinca gorunen alan buyudukce sayi dogru artiyor, ama "konumuma git" sonrasi
+// zoom cok yakinken de en az 5 km icindekiler her zaman sayima dahil oluyor.
+private const val NEARBY_RADIUS_METERS = 5_000.0
+
 // Gercek rota/trafik verisi olmadigindan varsayilan bir ortalama sehir-ici surus hizi
 // (docs/decisions.md'de tahmini oldugu belirtilmistir) ile yaklasik dakikaya cevriliyor.
 private const val ASSUMED_AVERAGE_SPEED_KMH = 25.0
@@ -57,6 +79,12 @@ data class VehicleMarker(
     val model: String = "",
     val plate: String = "",
     val pricePerDay: Int = 0,
+    // Backend'in gercek telemetri alanlari (VehicleResponseDto): daha once
+    // HomeScreen'de sabit placeholder degerlerle gosteriliyordu.
+    val fuelPercent: Int = 0,
+    val rangeKm: Int = 0,
+    val transmissionLabel: String = "",
+    val seats: Int = 0,
 )
 
 data class ActiveRentalVehicle(
@@ -84,12 +112,27 @@ data class HomeUiState(
     val selectedVehicleId: String? = null,
     val isLocationAccuracyHigh: Boolean = true,
     val activeRental: ActiveRentalSummary? = null,
+    // Haritanin o anki gercek gorunur alani; MapLibreMap'in OnCameraIdleListener'i
+    // her kamera hareketinde (zoom/pan) guncelliyor. Harita hazir olmadan (ilk
+    // frame) null kalir.
+    val visibleMapBounds: GeoBounds? = null,
 ) {
     val visibleVehicles: List<VehicleMarker>
         get() = if (selectedFilter == CategoryFilter.TUMU) {
             vehicles
         } else {
             vehicles.filter { it.category.name == selectedFilter.name }
+        }
+
+    val nearbyVehicleCount: Int
+        get() {
+            val bounds = visibleMapBounds
+            val location = userLocation
+            if (bounds == null && location == null) return visibleVehicles.size
+            return visibleVehicles.count { vehicle ->
+                (bounds != null && bounds.contains(vehicle.position)) ||
+                    (location != null && haversineMeters(location, vehicle.position) <= NEARBY_RADIUS_METERS)
+            }
         }
 
     val selectedVehicle: VehicleMarker?
@@ -117,6 +160,7 @@ sealed interface HomeIntent {
     data class UserLocationChanged(val location: LatLng) : HomeIntent
     data class SearchQueryChanged(val query: String) : HomeIntent
     data class VehicleSelected(val vehicleId: String) : HomeIntent
+    data class MapBoundsChanged(val bounds: GeoBounds) : HomeIntent
     data object VehicleDetailDismissed : HomeIntent
     data object LocateMeClicked : HomeIntent
     data object FindNearestVehicleClicked : HomeIntent
