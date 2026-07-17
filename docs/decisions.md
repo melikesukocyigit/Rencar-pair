@@ -376,3 +376,18 @@
 - Bilinen Sınır (değişmedi): `ActiveRentalVehicle.pricePerDay` alanı `RentalVehicleSummaryDto`'da bulunmadığından `0.0` ile dolduruluyor; banner'da fiyat gösterilmiyor, yalnızca marka/model/plaka gösteriliyor (önceki davranışla aynı — vehicle detayı hiç alınamadığında zaten aynı sonuç oluyordu).
 
 - Kapsam Dışı Bırakılan: `HistoryRepositoryImpl.getHistory()` hâlâ `GET /rentals`'a bağımlı (Geçmiş ekranının kendisi liste görünümü gerektiriyor, `/rentals/active` bunun yerine geçemez); bu, backend'in `500` hatasını düzeltmesini bekliyor.
+
+
+### Ehliyet Doğrulama — Cihaz Üzerinde Yüz Eşleştirme + "AI ile Anında Onayla"
+
+- Karar: Ehliyet ön yüz fotoğrafı ile selfie'yi karşılaştırmak için Yöntem A (cihaz üzerinde ML Kit + TensorFlow Lite) seçildi; sunucu tarafı köprü (Yöntem B, ayrı Python mikroservis + ngrok) MVP kapsamı dışında bırakıldı. Gerekçe, risk matrisi ve tam mimari karşılaştırma için bkz. `docs/ml-face-matching.md`.
+
+- Son Güncelleme Tarihi: 17.07.2026
+
+- Uygulama: Yüz eşleştirme, upload'ı engelleyen bir kapı değil; `UNDER_REVIEW` durumundaki başvuruda görünen opsiyonel bir "AI ile Anında Onayla" butonudur. Eşik (`FaceMatcher.THRESHOLD`) geçilirse backend'de tanımlı sabit bir demo admin hesabıyla (`+905550000000`, simüle OTP `123456`) anlık login yapılıp `PATCH /admin/licenses/{id}/approve` çağrılır; geçilmezse veya buton hiç kullanılmazsa başvuru normal admin incelemesinde kalır — bu akış hiçbir şekilde engellenmez.
+
+- Threshold Notu: Kimlik üzerindeki yüzün küçüklüğü, fine-tune edilmemiş genel model ve selfie/kimlik arasındaki açı farkı nedeniyle eşik akademik değerlerin (ör. 0.70) çok altında, `0.35`'e çekildi — bilinçli olarak false-negative'i azaltmayı önceliklendiren bir demo/MVP tercihi. `FaceMatcher` her çağrıda gerçek skoru Logcat'e yazar; gerçek cihaz testinden sonra kalibre edilmesi gerekir. Ayrıntı: `docs/ml-face-matching.md` §2.
+
+- Bilinçli Güvenlik Sınırlaması (yalnız demo/MVP): Admin onayı istemciden tetikleniyor. Bunun neden gerçek bir üründe kabul edilemez olduğu (decompile edilebilir yetki, istemci tarafı bypass riski) ve prod'da doğru mimarinin (Yöntem B — onay kararının sunucu tarafında verilmesi) ne olduğu `docs/ml-face-matching.md`'de ayrıntılı belgelendi.
+
+- Mimari Not: Admin onay çağrısı, ana ağ katmanından (`NetworkModule`) kasıtlı olarak izole tutuldu (`di/AdminApprovalModule.kt`, ayrı `OkHttpClient`/`Retrofit`). Sebep: `AuthInterceptor` her isteğe müşterinin `TokenManager`'daki access token'ını koşulsuz bastığından, admin çağrısı paylaşılan istemciden gitseydi müşteri token'ı admin token'ın yerini alır ve çağrı `403` dönerdi. İzolasyon ayrıca müşteri oturumunu (refresh token rotasyonu, `SessionManager`) bu yan akıştan tamamen korur.

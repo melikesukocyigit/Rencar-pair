@@ -2,7 +2,10 @@ package com.turkcell.rencar_pair.ui.auth.license
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.turkcell.rencar_pair.data.repository.AdminApprovalRepository
 import com.turkcell.rencar_pair.data.repository.LicenseRepository
+import com.turkcell.rencar_pair.util.FaceMatcher
+import com.turkcell.rencar_pair.util.FaceMatchResult
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.Flow
@@ -16,7 +19,9 @@ import javax.inject.Inject
 
 @HiltViewModel
 class LicenseViewModel @Inject constructor(
-    private val licenseRepository: LicenseRepository
+    private val licenseRepository: LicenseRepository,
+    private val faceMatcher: FaceMatcher,
+    private val adminApprovalRepository: AdminApprovalRepository,
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(LicenseUiState())
@@ -24,6 +29,13 @@ class LicenseViewModel @Inject constructor(
 
     private val _effect = Channel<LicenseEffect>(Channel.BUFFERED)
     val effect: Flow<LicenseEffect> = _effect.receiveAsFlow()
+
+    // AI onayi icin bellekte tutulan gorseller: sunucu selfie'yi geri vermedigi
+    // (LicenseStatusResponseDto'da selfieImageUrl yok) icin upload anindaki byte'lar
+    // saklanir. Surec (process) olurse (ekran yeniden acilirsa) kaybolur; bu durumda
+    // "AI ile Anında Onayla" butonu kullanicidan tekrar dogrulama ister.
+    private var cachedFrontBytes: ByteArray? = null
+    private var cachedSelfieBytes: ByteArray? = null
 
     init {
         checkLicenseStatus()
@@ -44,6 +56,7 @@ class LicenseViewModel @Inject constructor(
                     _effect.send(LicenseEffect.NavigateToNext)
                 }
             }
+            is LicenseIntent.RequestAiApproval -> requestAiApproval()
         }
     }
 
@@ -142,6 +155,10 @@ class LicenseViewModel @Inject constructor(
             _uiState.update { it.copy(isLoading = true) }
             licenseRepository.uploadLicense(frontBytes, backBytes, selfieBytes)
                 .onSuccess { response ->
+                    // "AI ile Anında Onayla" butonu icin sakla: sunucu selfie'yi status
+                    // yanitinda geri vermiyor, bu yuzden byte'lar burada yakalanmali.
+                    cachedFrontBytes = frontBytes
+                    cachedSelfieBytes = selfieBytes
                     _uiState.update {
                         it.copy(
                             isLoading = false,
@@ -149,6 +166,7 @@ class LicenseViewModel @Inject constructor(
                             frontImageUrl = response.frontImageUrl,
                             backImageUrl = response.backImageUrl,
                             rejectReason = response.rejectReason,
+                            licenseId = response.id,
                             currentStep = LicenseStep.ONAY
                         )
                     }
@@ -158,6 +176,67 @@ class LicenseViewModel @Inject constructor(
                     _uiState.update { it.copy(isLoading = false) }
                     _effect.send(LicenseEffect.ShowError(error.message ?: "Ehliyet yükleme başarısız."))
                 }
+        }
+    }
+
+    // "AI ile Anında Onayla": on-device yuz eslestirme esigi gecilirse demo admin
+    // hesabiyla anlik onay istenir; gecilmezse basvuru PENDING'de kalir ve normal
+    // admin incelemesi beklenmeye devam eder (bu akis onu hicbir sekilde engellemez).
+    private fun requestAiApproval() {
+        val state = _uiState.value
+        if (state.isAiApproving) return
+        val licenseId = state.licenseId
+        val frontBytes = cachedFrontBytes
+        val selfieBytes = cachedSelfieBytes
+        if (licenseId == null || frontBytes == null || selfieBytes == null) {
+            viewModelScope.launch {
+                _effect.send(
+                    LicenseEffect.ShowError(
+                        "AI onayı bu oturumda kullanılamıyor. Lütfen normal incelemeyi bekleyin.",
+                    ),
+                )
+            }
+            return
+        }
+
+        viewModelScope.launch {
+            _uiState.update { it.copy(isAiApproving = true) }
+
+            when (val match = faceMatcher.match(frontBytes, selfieBytes)) {
+                is FaceMatchResult.Success -> if (match.isMatch) {
+                    adminApprovalRepository.approveViaAi(licenseId)
+                        .onSuccess {
+                            _uiState.update { it.copy(isAiApproving = false) }
+                            checkLicenseStatus() // gercek durumu sunucudan tazele
+                        }
+                        .onFailure { error ->
+                            _uiState.update { it.copy(isAiApproving = false) }
+                            _effect.send(
+                                LicenseEffect.ShowError(error.message ?: "AI onayı başarısız oldu."),
+                            )
+                        }
+                } else {
+                    _uiState.update { it.copy(isAiApproving = false) }
+                    val percent = (match.similarity * 100).toInt()
+                    _effect.send(
+                        LicenseEffect.ShowError(
+                            "Yüzler yeterince eşleşmedi (benzerlik %$percent). Başvurunuz incelemeye devam ediyor.",
+                        ),
+                    )
+                }
+                FaceMatchResult.NoFaceInLicense -> {
+                    _uiState.update { it.copy(isAiApproving = false) }
+                    _effect.send(LicenseEffect.ShowError("Ehliyet ön yüzünde yüz tespit edilemedi."))
+                }
+                FaceMatchResult.NoFaceInSelfie -> {
+                    _uiState.update { it.copy(isAiApproving = false) }
+                    _effect.send(LicenseEffect.ShowError("Selfie görselinde yüz tespit edilemedi."))
+                }
+                is FaceMatchResult.Error -> {
+                    _uiState.update { it.copy(isAiApproving = false) }
+                    _effect.send(LicenseEffect.ShowError(match.message))
+                }
+            }
         }
     }
 }

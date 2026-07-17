@@ -18,6 +18,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.CameraAlt
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.CheckCircle
@@ -467,6 +468,46 @@ fun LicenseScreen(
 
             if (state.currentStep != LicenseStep.ONAY) {
                 Spacer(modifier = Modifier.weight(1f))
+            }
+
+            // "AI ile Anında Onayla": yalniz inceleme bekleyen basvuruda gorunur. On-device
+            // yuz eslestirme esigi gecilirse admin onayi anlik istenir; gecilmezse basvuru
+            // PENDING'de kalir ve normal inceleme sureci hicbir sekilde etkilenmez.
+            if (state.currentStep == LicenseStep.ONAY && state.status == "UNDER_REVIEW") {
+                Button(
+                    onClick = { onIntent(LicenseIntent.RequestAiApproval) },
+                    enabled = !state.isAiApproving,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(56.dp),
+                    shape = RoundedCornerShape(16.dp),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = Primary,
+                        contentColor = TextOnPrimary,
+                    ),
+                ) {
+                    if (state.isAiApproving) {
+                        CircularProgressIndicator(
+                            color = TextOnPrimary,
+                            strokeWidth = 2.dp,
+                            modifier = Modifier.size(22.dp),
+                        )
+                    } else {
+                        Icon(
+                            imageVector = Icons.Default.AutoAwesome,
+                            contentDescription = null,
+                            tint = TextOnPrimary,
+                            modifier = Modifier.size(20.dp),
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            text = "AI ile Anında Onayla",
+                            style = titleL,
+                            color = TextOnPrimary,
+                        )
+                    }
+                }
+                Spacer(modifier = Modifier.height(12.dp))
             }
 
             // Bottom Action Button

@@ -20,8 +20,6 @@ import javax.inject.Singleton
 @InstallIn(SingletonComponent::class)
 object NetworkModule {
 
-    private const val BASE_URL = "https://rencarv2.halitkalayci.com/"
-
     @Provides
     @Singleton
     fun provideJson(): Json = Json {
@@ -54,7 +52,7 @@ object NetworkModule {
         okHttpClient: OkHttpClient,
         json: Json
     ): Retrofit = Retrofit.Builder()
-        .baseUrl(BASE_URL)
+        .baseUrl(ApiConfig.BASE_URL)
         .client(okHttpClient)
         .addConverterFactory(json.asConverterFactory("application/json".toMediaType()))
         .build()
