@@ -170,9 +170,11 @@ fun ActiveRentalScreen(
             ActiveRentalMapView(
                 modifier = Modifier.fillMaxSize(),
                 hasLocationPermission = hasLocationPermission,
-                onLocationUpdate = { location ->
-                    onIntent(ActiveRentalIntent.LocationUpdated(ActiveRentalLatLng(location.latitude, location.longitude)))
-                },
+                // Mesafe artik sunucudan periyodik sorgulanan gercek distanceKm ile
+                // gosteriliyor (bkz. ActiveRentalViewModel.pollActiveRental); bu ekranin
+                // canli konum callback'i yalnizca haritadaki mavi noktayi guncelliyor,
+                // ViewModel'e artik bir intent gondermesine gerek yok.
+                onLocationUpdate = {},
             )
 
             Box(
@@ -266,7 +268,7 @@ fun ActiveRentalScreen(
                     Row(horizontalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.fillMaxWidth()) {
                         StatCard(
                             label = "Anlık ücret",
-                            value = "₺${"%.2f".format(state.liveCost).replace('.', ',')}",
+                            value = "₺${"%.2f".format(state.currentCost).replace('.', ',')}",
                             modifier = Modifier.weight(1f),
                         )
                         StatCard(
