@@ -18,7 +18,9 @@ data class LicenseUiState(
     val isLoading: Boolean = false,
     val isSubmitEnabled: Boolean = false, // True if active step requirements are met
     val status: String = "NOT_SUBMITTED", // NOT_SUBMITTED, UNDER_REVIEW, APPROVED, REJECTED
-    val rejectReason: String? = null // Captured from backend status response
+    val rejectReason: String? = null, // Captured from backend status response
+    val licenseId: String? = null, // upload yanitindan yakalanir; AI onayi bunu kullanir
+    val isAiApproving: Boolean = false,
 )
 
 sealed interface LicenseIntent {
@@ -34,6 +36,8 @@ sealed interface LicenseIntent {
     data object BackStepClicked : LicenseIntent
     data object RefreshStatus : LicenseIntent
     data object MockBypassApprove : LicenseIntent // Dummy bypass for demo presentation
+    // Yuz eslestirme + admin onayini tetikler (yalniz UNDER_REVIEW durumunda gosterilir).
+    data object RequestAiApproval : LicenseIntent
 }
 
 sealed interface LicenseEffect {

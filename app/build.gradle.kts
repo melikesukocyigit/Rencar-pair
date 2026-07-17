@@ -55,6 +55,11 @@ android {
         compose = true
         buildConfig = true
     }
+    androidResources {
+        // TFLite modeli varsayilan olarak sikistirilirsa calisma aninda MappedByteBuffer
+        // ile okunamaz; sikistirmayi kapatmak zorunlu.
+        noCompress += "tflite"
+    }
 }
 
 dependencies {
@@ -86,4 +91,9 @@ dependencies {
     implementation(libs.kotlinx.serialization.json)
     implementation(libs.maplibre.android.sdk)
     implementation(libs.play.services.location)
+
+    // Cihaz uzerinde (on-device) yuz eslestirme: ML Kit yuz tespiti + TFLite embedding.
+    implementation("com.google.mlkit:face-detection:16.1.7")
+    implementation("org.tensorflow:tensorflow-lite:2.14.0")
+    implementation("org.tensorflow:tensorflow-lite-support:0.4.4")
 }
