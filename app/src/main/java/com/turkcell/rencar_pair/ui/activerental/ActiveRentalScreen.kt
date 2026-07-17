@@ -47,8 +47,10 @@ import androidx.core.content.ContextCompat
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.turkcell.rencar_pair.ui.common.map.GeoPoint
+import com.turkcell.rencar_pair.ui.common.map.MapMarkerItem
 import com.turkcell.rencar_pair.ui.common.map.RencarMap
 import com.turkcell.rencar_pair.ui.common.map.enableLiveLocation
+import com.turkcell.rencar_pair.ui.common.map.renderMapMarkers
 import com.turkcell.rencar_pair.ui.theme.BackgroundDark
 import com.turkcell.rencar_pair.ui.theme.ErrorDefault
 import com.turkcell.rencar_pair.ui.theme.Primary
@@ -170,6 +172,9 @@ fun ActiveRentalScreen(
             ActiveRentalMapView(
                 modifier = Modifier.fillMaxSize(),
                 hasLocationPermission = hasLocationPermission,
+                vehicleLocation = state.vehicleLocation,
+                vehicleId = state.vehicleId,
+                vehicleLabel = state.plate.ifBlank { "Araç" },
                 onLocationUpdate = { location ->
                     onIntent(ActiveRentalIntent.LocationUpdated(ActiveRentalLatLng(location.latitude, location.longitude)))
                 },
@@ -319,14 +324,18 @@ private fun StatCard(label: String, value: String, modifier: Modifier = Modifier
     }
 }
 
-// Bu ekrana ozel kucuk bir harita bileseni: yalnizca canli konum (mavi nokta) icin;
-// arac marker'lari veya kat edilen yolun cizgisi bu adimda cizilmiyor (kapsam disi).
+// Bu ekrana ozel kucuk bir harita bileseni: kiracinin kendi canli konumu (mavi nokta,
+// telefon GPS'i) ve aracin backend'den Socket.IO ile gelen canli konumu (ayri bir marker)
+// birlikte gosterilir. Kat edilen yolun cizgisi bu adimda cizilmiyor (kapsam disi).
 // hasLocationPermission false iken enableLiveLocation hic cagrilmaz (once izin yoktu,
 // canli konum izinsiz cagriliyordu).
 @Composable
 private fun ActiveRentalMapView(
     modifier: Modifier = Modifier,
     hasLocationPermission: Boolean,
+    vehicleLocation: ActiveRentalLatLng?,
+    vehicleId: String,
+    vehicleLabel: String,
     onLocationUpdate: (Location) -> Unit,
 ) {
     val context = LocalContext.current
@@ -342,6 +351,23 @@ private fun ActiveRentalMapView(
             onLocationUpdate = onLocationUpdate,
         )
         onDispose { disposeLocation() }
+    }
+
+    LaunchedEffect(mapLibreMap, vehicleLocation) {
+        val map = mapLibreMap ?: return@LaunchedEffect
+        val location = vehicleLocation ?: return@LaunchedEffect
+        renderMapMarkers(
+            context = context,
+            map = map,
+            items = listOf(
+                MapMarkerItem(
+                    id = vehicleId,
+                    position = GeoPoint(location.latitude, location.longitude),
+                    label = vehicleLabel,
+                    color = Primary,
+                ),
+            ),
+        )
     }
 
     RencarMap(

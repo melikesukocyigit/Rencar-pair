@@ -33,6 +33,9 @@ data class ActiveRentalUiState(
     val nowEpochMillis: Long = System.currentTimeMillis(),
     val distanceMeters: Double = 0.0,
     val isVehicleLocked: Boolean = false,
+    // Aracin backend'den Socket.IO ile gelen canli konumu (kiracinin kendi telefon GPS'inden
+    // ayri); aktif kiralama yoksa veya henuz ilk kare gelmediyse null kalir.
+    val vehicleLocation: ActiveRentalLatLng? = null,
 ) {
     val elapsedSeconds: Long
         get() {

@@ -4,6 +4,7 @@ import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.turkcell.rencar_pair.data.model.RentalResponseDto
+import com.turkcell.rencar_pair.data.model.VehicleLocationPoint
 import com.turkcell.rencar_pair.data.repository.RentalRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.channels.Channel
@@ -43,6 +44,7 @@ class ActiveRentalViewModel @Inject constructor(
 
     init {
         loadRentalStart()
+        observeVehicleLocation()
     }
 
     fun onIntent(intent: ActiveRentalIntent) {
@@ -98,6 +100,18 @@ class ActiveRentalViewModel @Inject constructor(
         val end = rental.endDate?.let { parseIsoUtc(it) } ?: return null
         val days = Math.round((end - start).toDouble() / 86_400_000.0).coerceAtLeast(1L)
         return totalPrice / days
+    }
+
+    // Aracin canli konumu (Socket.IO). ViewModel yasam suresi boyunca acik kalir;
+    // viewModelScope iptal edildiginde alt akis (RideLocationClient) de kapanir.
+    private fun observeVehicleLocation() {
+        viewModelScope.launch {
+            rentalRepository.vehiclePositionStream().collect { point: VehicleLocationPoint ->
+                _uiState.update {
+                    it.copy(vehicleLocation = ActiveRentalLatLng(point.latitude, point.longitude))
+                }
+            }
+        }
     }
 
     private fun onLocationUpdated(location: ActiveRentalLatLng) {
