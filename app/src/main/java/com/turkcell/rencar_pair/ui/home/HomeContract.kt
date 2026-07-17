@@ -25,6 +25,12 @@ private fun haversineMeters(from: LatLng, to: LatLng): Double {
     return 2 * EARTH_RADIUS_METERS * asin(sqrt(h))
 }
 
+// "Konumuma git" butonuna basildiktan sonra "Yakinimda N arac" gercekten yakindaki
+// araclari saysin diye kullanilan esik. Backend'de konum bazli bir filtre parametresi
+// olmadigindan (GET /vehicles'ta lat/lng/radius yok) bu filtre tamamen istemci
+// tarafinda, gercek Haversine mesafesiyle yapiliyor.
+private const val NEARBY_RADIUS_METERS = 5_000.0
+
 // Gercek rota/trafik verisi olmadigindan varsayilan bir ortalama sehir-ici surus hizi
 // (docs/decisions.md'de tahmini oldugu belirtilmistir) ile yaklasik dakikaya cevriliyor.
 private const val ASSUMED_AVERAGE_SPEED_KMH = 25.0
@@ -57,6 +63,12 @@ data class VehicleMarker(
     val model: String = "",
     val plate: String = "",
     val pricePerDay: Int = 0,
+    // Backend'in gercek telemetri alanlari (VehicleResponseDto): daha once
+    // HomeScreen'de sabit placeholder degerlerle gosteriliyordu.
+    val fuelPercent: Int = 0,
+    val rangeKm: Int = 0,
+    val transmissionLabel: String = "",
+    val seats: Int = 0,
 )
 
 data class ActiveRentalVehicle(
@@ -84,12 +96,24 @@ data class HomeUiState(
     val selectedVehicleId: String? = null,
     val isLocationAccuracyHigh: Boolean = true,
     val activeRental: ActiveRentalSummary? = null,
+    // "Konumuma git" butonuna basilinca true olur; "Yakinimda N arac" o andan
+    // itibaren tum listeyi degil, gercekten NEARBY_RADIUS_METERS icindeki araclari
+    // sayar. Harita Turkiye geneli gorunumdeyken (buton hic basilmadan) tum
+    // eslesen araclarin sayisi gosterilmeye devam eder.
+    val isFocusedOnUserLocation: Boolean = false,
 ) {
     val visibleVehicles: List<VehicleMarker>
         get() = if (selectedFilter == CategoryFilter.TUMU) {
             vehicles
         } else {
             vehicles.filter { it.category.name == selectedFilter.name }
+        }
+
+    val nearbyVehicleCount: Int
+        get() {
+            val location = userLocation
+            if (!isFocusedOnUserLocation || location == null) return visibleVehicles.size
+            return visibleVehicles.count { haversineMeters(location, it.position) <= NEARBY_RADIUS_METERS }
         }
 
     val selectedVehicle: VehicleMarker?

@@ -16,26 +16,39 @@ import com.turkcell.rencar_pair.data.local.TokenManager
 import com.turkcell.rencar_pair.data.repository.RentalRepository
 import javax.inject.Inject
 
-// API'nin gercek arac tipini (SEDAN/SUV/HATCHBACK/STATION/MINIVAN) tasarimdaki
-// Ekonomik/Konfor/SUV kategorilerine esler. Otomotiv kiralama sektorunde yerlesik
-// segment kurali: Sedan/Hatchback -> Ekonomik, Station/Minivan -> Konfor, SUV -> SUV.
-private fun mapApiTypeToCategory(type: String): VehicleCategory = when (type) {
+// Backend'in gercek fiyat segmenti (ECONOMY/COMFORT/SUV) tasarimdaki Ekonomik/
+// Konfor/SUV kategorilerine esler. Onceden bu esleme aracin govde tipinden
+// (SEDAN/SUV/...) tahmin ediliyordu; canli 100 arac karsilastirildiginda bunlarin
+// %45'i yanlis kategoriye dusuyordu (bkz. docs/decisions.md). segment, /vehicles
+// yanitinda zaten tam bu ayrim icin var.
+private fun mapSegmentToCategory(segment: String): VehicleCategory = when (segment) {
+    "COMFORT" -> VehicleCategory.KONFOR
     "SUV" -> VehicleCategory.SUV
-    "STATION", "MINIVAN" -> VehicleCategory.KONFOR
     else -> VehicleCategory.EKONOMIK
+}
+
+private fun mapTransmissionLabel(transmission: String): String = when (transmission) {
+    "AUTOMATIC" -> "Otomatik"
+    else -> "Manuel"
 }
 
 private fun VehicleResponseDto.toMarker(): VehicleMarker = VehicleMarker(
     id = id,
     position = LatLng(latitude, longitude),
     priceLabel = "₺${pricePerDay.toInt()}/gün",
-    category = mapApiTypeToCategory(type),
+    category = mapSegmentToCategory(segment),
     inUse = status != "AVAILABLE",
     brand = brand,
     model = model,
     plate = plate,
     pricePerDay = pricePerDay.toInt(),
+    fuelPercent = fuelPercent,
+    rangeKm = rangeKm,
+    transmissionLabel = mapTransmissionLabel(transmission),
+    seats = seats,
 )
+
+private const val VEHICLE_PAGE_SIZE = 20
 
 @HiltViewModel
 class HomeViewModel @Inject constructor(
@@ -144,10 +157,13 @@ class HomeViewModel @Inject constructor(
     private fun loadVehicles() {
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true) }
-            vehicleRepository.getAvailableVehicles()
+            vehicleRepository.getAvailableVehicles(page = 1, limit = VEHICLE_PAGE_SIZE)
                 .onSuccess { dtos ->
                     _uiState.update {
                         it.copy(isLoading = false, vehicles = dtos.map { dto -> dto.toMarker() })
+                    }
+                    if (dtos.size == VEHICLE_PAGE_SIZE) {
+                        loadRemainingVehiclePages(nextPage = 2)
                     }
                 }
                 .onFailure { throwable ->
@@ -157,8 +173,26 @@ class HomeViewModel @Inject constructor(
         }
     }
 
+    // Ilk sayfa (20 arac) hemen gosterildikten sonra, "Yakininda N arac" gercek
+    // toplami yansitsin diye kalan sayfalar arka planda sessizce cekilip haritaya
+    // eklenir; kullaniciya ekstra bir yukleniyor gostergesi gosterilmez (bkz.
+    // docs/decisions.md, "Ana Harita — Arac Sayisi 20 ile Sabitlenmis" karari).
+    private suspend fun loadRemainingVehiclePages(nextPage: Int) {
+        var page = nextPage
+        while (true) {
+            val dtos = vehicleRepository.getAvailableVehicles(page = page, limit = VEHICLE_PAGE_SIZE).getOrNull()
+            if (dtos.isNullOrEmpty()) break
+            _uiState.update { it.copy(vehicles = it.vehicles + dtos.map { dto -> dto.toMarker() }) }
+            if (dtos.size < VEHICLE_PAGE_SIZE) break
+            page++
+        }
+    }
+
     private fun locateMe() {
         if (_uiState.value.hasLocationPermission) {
+            // "Yakinimda N arac" bu andan itibaren tum listeyi degil, gercekten
+            // yakindaki araclari saysin (bkz. HomeUiState.nearbyVehicleCount).
+            _uiState.update { it.copy(isFocusedOnUserLocation = true) }
             sendEffect(HomeEffect.CenterOnUserLocation)
         } else {
             sendEffect(HomeEffect.RequestLocationPermission)
