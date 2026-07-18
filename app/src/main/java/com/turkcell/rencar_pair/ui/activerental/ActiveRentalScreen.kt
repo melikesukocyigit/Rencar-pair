@@ -7,6 +7,7 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -216,6 +217,7 @@ fun ActiveRentalScreen(
                         .size(40.dp)
                         .clip(RoundedCornerShape(12.dp))
                         .background(cardColor)
+                        .border(width = 1.dp, color = borderColor, shape = RoundedCornerShape(12.dp))
                         .clickable(onClick = onBack),
                     contentAlignment = Alignment.Center,
                 ) {
@@ -251,6 +253,7 @@ fun ActiveRentalScreen(
                     iconBg = backgroundColor,
                     textPrimary = textPrimary,
                     textTertiary = textTertiary,
+                    borderColor = borderColor,
                 )
 
                 Spacer(modifier = Modifier.height(16.dp))
@@ -306,6 +309,7 @@ fun ActiveRentalScreen(
                             .fillMaxWidth()
                             .clip(RoundedCornerShape(18.dp))
                             .background(cardColor)
+                            .border(width = 1.dp, color = borderColor, shape = RoundedCornerShape(18.dp))
                             .padding(vertical = 18.dp),
                         horizontalAlignment = Alignment.CenterHorizontally,
                     ) {
@@ -350,6 +354,7 @@ fun ActiveRentalScreen(
                                 .fillMaxWidth()
                                 .clip(RoundedCornerShape(12.dp))
                                 .background(infoBg)
+                                .border(width = 1.dp, color = borderColor, shape = RoundedCornerShape(12.dp))
                                 .padding(14.dp),
                             verticalAlignment = Alignment.CenterVertically,
                         ) {
@@ -430,6 +435,7 @@ private fun VehicleInfoCard(
     iconBg: Color,
     textPrimary: Color,
     textTertiary: Color,
+    borderColor: Color,
     modifier: Modifier = Modifier,
 ) {
     Row(
@@ -437,6 +443,7 @@ private fun VehicleInfoCard(
             .fillMaxWidth()
             .clip(RoundedCornerShape(16.dp))
             .background(cardColor)
+            .border(width = 1.dp, color = borderColor, shape = RoundedCornerShape(16.dp))
             .padding(14.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
@@ -444,7 +451,8 @@ private fun VehicleInfoCard(
             modifier = Modifier
                 .size(48.dp)
                 .clip(RoundedCornerShape(12.dp))
-                .background(iconBg),
+                .background(iconBg)
+                .border(width = 1.dp, color = borderColor, shape = RoundedCornerShape(12.dp)),
             contentAlignment = Alignment.Center,
         ) {
             Icon(

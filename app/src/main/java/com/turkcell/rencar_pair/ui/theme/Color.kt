@@ -80,3 +80,7 @@ val CategorySuv = Color(0xFFE6A700)
 val CategoryKullanimdaLight = Color(0xFF9AA3AE)
 val CategoryKullanımdaDark = Color(0xFF5A636F)
 val CategoryElektrik = Color(0xFF0AB5A6)
+
+// Navigation
+val NavInactiveLight = Color(0xFF9AA3AE)
+val NavInactiveDark = Color(0xFF6B7480)
