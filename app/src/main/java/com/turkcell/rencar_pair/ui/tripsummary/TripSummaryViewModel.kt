@@ -43,6 +43,8 @@ class TripSummaryViewModel @Inject constructor(
     fun onIntent(intent: TripSummaryIntent) {
         when (intent) {
             TripSummaryIntent.PayClicked -> pay()
+            TripSummaryIntent.DoneClicked ->
+                viewModelScope.launch { _effect.send(TripSummaryEffect.NavigateHome) }
         }
     }
 
@@ -71,7 +73,7 @@ class TripSummaryViewModel @Inject constructor(
             val result = walletRepository.payFromBalance(state.totalPrice, title)
             _uiState.update { it.copy(isPaying = false) }
             result
-                .onSuccess { _effect.send(TripSummaryEffect.NavigateHome) }
+                .onSuccess { _uiState.update { current -> current.copy(isPaid = true) } }
                 .onFailure { _effect.send(TripSummaryEffect.ShowError(it.message ?: "Ödeme yapılamadı.")) }
         }
     }

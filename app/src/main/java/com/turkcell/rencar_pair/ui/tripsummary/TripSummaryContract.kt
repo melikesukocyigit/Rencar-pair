@@ -11,6 +11,10 @@ data class TripSummaryUiState(
     val cardLabel: String = "",
     val isLoadingCard: Boolean = true,
     val isPaying: Boolean = false,
+    // Odeme basarili olunca hemen Home'a gecmek yerine, ayni ekranda "Odeme
+    // Onaylandi" ozet gorunumune gecilir; kullanici "Ana Sayfaya Don" ile
+    // NavigateHome'u kendisi tetikler.
+    val isPaid: Boolean = false,
 ) {
     val durationMinutes: Long get() = durationSeconds / 60
     val distanceKm: Double get() = distanceMeters / 1000.0
@@ -18,6 +22,7 @@ data class TripSummaryUiState(
 
 sealed interface TripSummaryIntent {
     data object PayClicked : TripSummaryIntent
+    data object DoneClicked : TripSummaryIntent
 }
 
 sealed interface TripSummaryEffect {

@@ -147,47 +147,80 @@ fun TripSummaryScreen(
 
             Spacer(modifier = Modifier.height(14.dp))
 
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clip(RoundedCornerShape(16.dp))
-                    .background(SurfaceDark)
-                    .padding(horizontal = 16.dp, vertical = 14.dp)
-                    .clickable { /* Kart degistirme akisi bu adimda kapsam disi */ },
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Icon(imageVector = Icons.Default.CreditCard, contentDescription = null, tint = TextSecondaryDark)
-                Column(modifier = Modifier.padding(start = 12.dp).weight(1f)) {
+            if (state.isPaid) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(16.dp))
+                        .background(SuccessBackgroundDark)
+                        .padding(horizontal = 16.dp, vertical = 14.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Icon(imageVector = Icons.Default.Check, contentDescription = null, tint = SuccessStrongDark)
                     Text(
-                        text = if (state.isLoadingCard) "Kart yükleniyor…" else state.cardLabel,
-                        style = bodyS,
-                        color = TextPrimaryDark,
+                        text = "Ödeme Onaylandı",
+                        style = titleL,
+                        color = SuccessStrongDark,
+                        modifier = Modifier.padding(start = 12.dp),
                     )
-                    Text(text = "Kişisel kart", style = bodyS, color = TextTertiaryDark)
                 }
-                Text(text = "Değiştir", style = titleS, color = Primary)
+            } else {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(16.dp))
+                        .background(SurfaceDark)
+                        .padding(horizontal = 16.dp, vertical = 14.dp)
+                        .clickable { /* Kart degistirme akisi bu adimda kapsam disi */ },
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Icon(imageVector = Icons.Default.CreditCard, contentDescription = null, tint = TextSecondaryDark)
+                    Column(modifier = Modifier.padding(start = 12.dp).weight(1f)) {
+                        Text(
+                            text = if (state.isLoadingCard) "Kart yükleniyor…" else state.cardLabel,
+                            style = bodyS,
+                            color = TextPrimaryDark,
+                        )
+                        Text(text = "Kişisel kart", style = bodyS, color = TextTertiaryDark)
+                    }
+                    Text(text = "Değiştir", style = titleS, color = Primary)
+                }
             }
 
             Spacer(modifier = Modifier.weight(1f))
 
-            Button(
-                onClick = { onIntent(TripSummaryIntent.PayClicked) },
-                enabled = !state.isPaying,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(56.dp)
-                    .padding(bottom = 20.dp),
-                shape = RoundedCornerShape(18.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = Primary, contentColor = TextOnPrimary),
-            ) {
-                if (state.isPaying) {
-                    CircularProgressIndicator(color = TextOnPrimary, strokeWidth = 2.dp, modifier = Modifier.size(20.dp))
-                } else {
-                    Text(
-                        text = "₺${"%.2f".format(state.totalPrice).replace('.', ',')} Öde",
-                        style = titleL,
-                        color = TextOnPrimary,
-                    )
+            if (state.isPaid) {
+                Button(
+                    onClick = { onIntent(TripSummaryIntent.DoneClicked) },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(56.dp)
+                        .padding(bottom = 20.dp),
+                    shape = RoundedCornerShape(18.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = Primary, contentColor = TextOnPrimary),
+                ) {
+                    Text(text = "Ana Sayfaya Dön", style = titleL, color = TextOnPrimary)
+                }
+            } else {
+                Button(
+                    onClick = { onIntent(TripSummaryIntent.PayClicked) },
+                    enabled = !state.isPaying,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(56.dp)
+                        .padding(bottom = 20.dp),
+                    shape = RoundedCornerShape(18.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = Primary, contentColor = TextOnPrimary),
+                ) {
+                    if (state.isPaying) {
+                        CircularProgressIndicator(color = TextOnPrimary, strokeWidth = 2.dp, modifier = Modifier.size(20.dp))
+                    } else {
+                        Text(
+                            text = "₺${"%.2f".format(state.totalPrice).replace('.', ',')} Öde",
+                            style = titleL,
+                            color = TextOnPrimary,
+                        )
+                    }
                 }
             }
         }
