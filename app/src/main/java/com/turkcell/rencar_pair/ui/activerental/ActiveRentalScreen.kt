@@ -52,6 +52,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -234,7 +235,8 @@ fun ActiveRentalScreen(
                         .clip(RoundedCornerShape(12.dp))
                         .background(cardColor)
                         .border(width = 1.dp, color = borderColor, shape = RoundedCornerShape(12.dp))
-                        .clickable(onClick = onBack),
+                        .clickable(onClick = onBack)
+                        .testTag("active_rental_back_button"),
                     contentAlignment = Alignment.Center,
                 ) {
                     Icon(
@@ -405,7 +407,8 @@ fun ActiveRentalScreen(
                         onClick = { onIntent(ActiveRentalIntent.LockToggleClicked) },
                         modifier = Modifier
                             .fillMaxWidth()
-                            .height(56.dp),
+                            .height(56.dp)
+                            .testTag("active_rental_unlock_button"),
                         shape = RoundedCornerShape(16.dp),
                         colors = ButtonDefaults.buttonColors(containerColor = Primary, contentColor = TextOnPrimary),
                     ) {
@@ -417,7 +420,8 @@ fun ActiveRentalScreen(
                         onClick = { onIntent(ActiveRentalIntent.LockToggleClicked) },
                         modifier = Modifier
                             .weight(1f)
-                            .height(56.dp),
+                            .height(56.dp)
+                            .testTag("active_rental_lock_button"),
                         shape = RoundedCornerShape(16.dp),
                         colors = ButtonDefaults.outlinedButtonColors(contentColor = textPrimary),
                         border = androidx.compose.foundation.BorderStroke(1.dp, borderColor),
@@ -429,7 +433,8 @@ fun ActiveRentalScreen(
                         onClick = { onIntent(ActiveRentalIntent.EndRentalClicked) },
                         modifier = Modifier
                             .weight(1f)
-                            .height(56.dp),
+                            .height(56.dp)
+                            .testTag("active_rental_end_button"),
                         shape = RoundedCornerShape(16.dp),
                         colors = ButtonDefaults.buttonColors(containerColor = ErrorDefault, contentColor = TextOnPrimary),
                     ) {
