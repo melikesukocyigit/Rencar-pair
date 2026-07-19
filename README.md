@@ -208,3 +208,13 @@ base.url=https\://rencarv2.halitkalayci.com/
 1. Android Studio'yu açıp projeyi import edin.
 2. Gradle senkronizasyonunun tamamlanmasını bekleyin.
 3. Uygulamayı emülatörünüzde (`emulator-5554`) koşturmak için **Run** tuusuna basın.
+
+---
+
+## 👥 Ekip
+
+Turkcell Geleceği Yazan Gençler 5.0 — Kotlin Bootcamp kapsamında geliştirilmiştir.
+
+* Melike Su Koçyiğit
+* Mehmet Karabalcı
+* Ali Erkin Avcı
