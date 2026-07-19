@@ -30,6 +30,7 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.vectorResource
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
@@ -139,7 +140,8 @@ fun OnboardingScreen(
             onClick = { onIntent(OnboardingIntent.StartRegister) },
             modifier = Modifier
                 .fillMaxWidth()
-                .height(56.dp),
+                .height(56.dp)
+                .testTag("onboarding_start_button"),
             shape = RoundedCornerShape(16.dp),
             colors = ButtonDefaults.buttonColors(
                 containerColor = Primary,
@@ -254,7 +256,7 @@ private fun SecondaryLoginRow(
     androidx.compose.foundation.text.ClickableText(
         text = annotatedText,
         style = bodyM.copy(textAlign = TextAlign.Center),
-        modifier = modifier,
+        modifier = modifier.testTag("onboarding_login_link"),
         onClick = { offset ->
             val loginStart = annotatedText.indexOf("Giriş yap")
             if (offset >= loginStart) onLoginClick()

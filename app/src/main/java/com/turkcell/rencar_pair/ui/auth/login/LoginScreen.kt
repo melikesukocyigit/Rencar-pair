@@ -44,6 +44,7 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.withStyle
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -157,7 +158,8 @@ fun LoginScreen(
                 enabled = state.isSubmitEnabled,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(56.dp),
+                    .height(56.dp)
+                    .testTag("login_submit_button"),
                 shape = RoundedCornerShape(16.dp),
                 colors = ButtonDefaults.buttonColors(
                     containerColor = Primary,
@@ -199,7 +201,8 @@ private fun BackButton(
             .size(40.dp)
             .clip(RoundedCornerShape(12.dp))
             .background(MaterialTheme.colorScheme.surfaceVariant)
-            .clickable(onClick = onClick),
+            .clickable(onClick = onClick)
+            .testTag("login_back_button"),
         contentAlignment = Alignment.Center,
     ) {
         Icon(
@@ -251,7 +254,8 @@ private fun PhoneInputRow(
                 .weight(1f)
                 .height(54.dp)
                 .border(1.dp, fieldBorder, RoundedCornerShape(12.dp))
-                .padding(horizontal = 16.dp),
+                .padding(horizontal = 16.dp)
+                .testTag("login_phone_input"),
             textStyle = bodyM.copy(color = MaterialTheme.colorScheme.onSurface),
             keyboardOptions = KeyboardOptions(
                 keyboardType = KeyboardType.Phone,
@@ -313,7 +317,7 @@ private fun RegisterLinkRow(
     androidx.compose.foundation.text.ClickableText(
         text = annotatedText,
         style = bodyM.copy(textAlign = TextAlign.Center),
-        modifier = modifier,
+        modifier = modifier.testTag("login_register_link"),
         onClick = { offset ->
             val registerStart = annotatedText.indexOf("Kayıt ol")
             if (offset >= registerStart) onRegisterClick()

@@ -65,6 +65,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.compose.ui.unit.dp
@@ -671,7 +672,8 @@ private fun VehicleDetailBottomSheet(
                 onClick = onReserveClick,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(56.dp),
+                    .height(56.dp)
+                    .testTag("home_reserve_button"),
                 shape = RoundedCornerShape(18.dp),
                 colors = ButtonDefaults.buttonColors(containerColor = reserveColor, contentColor = TextOnPrimary),
             ) {
@@ -760,7 +762,9 @@ private fun SearchBar(
             singleLine = true,
             textStyle = bodyS.copy(color = MaterialTheme.colorScheme.onSurface),
             cursorBrush = SolidColor(MaterialTheme.colorScheme.onSurface),
-            modifier = Modifier.weight(1f),
+            modifier = Modifier
+                .weight(1f)
+                .testTag("home_search_input"),
             decorationBox = { innerTextField ->
                 if (query.isEmpty()) {
                     Text(
@@ -807,7 +811,12 @@ private fun MapZoomControls(
             .background(buttonColor)
             .border(width = 1.dp, color = borderColor, shape = RoundedCornerShape(14.dp)),
     ) {
-        IconButton(onClick = onZoomIn, modifier = Modifier.size(46.dp)) {
+        IconButton(
+            onClick = onZoomIn,
+            modifier = Modifier
+                .size(46.dp)
+                .testTag("home_zoom_in_button"),
+        ) {
             Icon(
                 imageVector = Icons.Default.Add,
                 contentDescription = "Yakınlaştır",
@@ -820,7 +829,12 @@ private fun MapZoomControls(
                 .height(1.dp)
                 .background(dividerColor),
         )
-        IconButton(onClick = onZoomOut, modifier = Modifier.size(46.dp)) {
+        IconButton(
+            onClick = onZoomOut,
+            modifier = Modifier
+                .size(46.dp)
+                .testTag("home_zoom_out_button"),
+        ) {
             Icon(
                 imageVector = Icons.Default.Remove,
                 contentDescription = "Uzaklaştır",
@@ -842,7 +856,8 @@ private fun LocateMeButton(onClick: () -> Unit, modifier: Modifier = Modifier) {
             .size(46.dp)
             .clip(RoundedCornerShape(14.dp))
             .background(buttonColor)
-            .border(width = 1.dp, color = borderColor, shape = RoundedCornerShape(14.dp)),
+            .border(width = 1.dp, color = borderColor, shape = RoundedCornerShape(14.dp))
+            .testTag("home_locate_me_button"),
         contentAlignment = Alignment.Center,
     ) {
         IconButton(onClick = onClick) {
@@ -922,24 +937,28 @@ private fun NearbyVehiclesCard(
                 label = "Tümü",
                 selected = selectedFilter == CategoryFilter.TUMU,
                 onClick = { onFilterSelected(CategoryFilter.TUMU) },
+                testTag = "home_filter_tumu",
             )
             FilterChip(
                 label = "Ekonomik",
                 dotColor = CategoryEkonomik,
                 selected = selectedFilter == CategoryFilter.EKONOMIK,
                 onClick = { onFilterSelected(CategoryFilter.EKONOMIK) },
+                testTag = "home_filter_ekonomik",
             )
             FilterChip(
                 label = "Konfor",
                 dotColor = CategoryKonfor,
                 selected = selectedFilter == CategoryFilter.KONFOR,
                 onClick = { onFilterSelected(CategoryFilter.KONFOR) },
+                testTag = "home_filter_konfor",
             )
             FilterChip(
                 label = "SUV",
                 dotColor = CategorySuv,
                 selected = selectedFilter == CategoryFilter.SUV,
                 onClick = { onFilterSelected(CategoryFilter.SUV) },
+                testTag = "home_filter_suv",
             )
         }
 
@@ -949,7 +968,8 @@ private fun NearbyVehiclesCard(
             onClick = onFindNearestVehicleClicked,
             modifier = Modifier
                 .fillMaxWidth()
-                .height(56.dp),
+                .height(56.dp)
+                .testTag("home_find_nearest_button"),
             shape = RoundedCornerShape(18.dp),
             colors = ButtonDefaults.buttonColors(containerColor = Primary, contentColor = TextOnPrimary),
         ) {
@@ -970,6 +990,7 @@ private fun FilterChip(
     label: String,
     selected: Boolean,
     onClick: () -> Unit,
+    testTag: String,
     modifier: Modifier = Modifier,
     dotColor: Color? = null,
 ) {
@@ -984,7 +1005,8 @@ private fun FilterChip(
             .clip(RoundedCornerShape(12.dp))
             .background(background)
             .clickable(onClick = onClick)
-            .padding(horizontal = 14.dp, vertical = 9.dp),
+            .padding(horizontal = 14.dp, vertical = 9.dp)
+            .testTag(testTag),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(6.dp),
     ) {
@@ -1036,7 +1058,8 @@ private fun ActiveRentalBanner(
             .background(containerBg)
             .border(width = 1.dp, color = borderColor, shape = RoundedCornerShape(16.dp))
             .clickable(onClick = onClick)
-            .padding(horizontal = 16.dp, vertical = 12.dp),
+            .padding(horizontal = 16.dp, vertical = 12.dp)
+            .testTag("home_active_rental_banner"),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Box(

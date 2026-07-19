@@ -20,6 +20,7 @@ import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.StrokeJoin
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
@@ -195,7 +196,8 @@ private fun UserHeader(name: String, phone: String, onEdit: () -> Unit) {
                 .size(38.dp)
                 .shadow(elevation = 2.dp, shape = RoundedCornerShape(12.dp))
                 .background(if (isDark) SurfaceElevatedDark else Color.White)
-                .clickable(onClick = onEdit),
+                .clickable(onClick = onEdit)
+                .testTag("profile_edit_button"),
             contentAlignment = Alignment.Center,
         ) {
             PencilIcon(tint = if (isDark) TextSecondaryDark else TextSecondaryLight)
@@ -290,6 +292,12 @@ private fun MenuCard(
             .padding(horizontal = 16.dp, vertical = 4.dp),
     ) {
         items.forEachIndexed { index, label ->
+            val itemTag = when (index) {
+                0 -> "profile_menu_payment_methods"
+                1 -> "profile_menu_settings"
+                2 -> "profile_menu_help"
+                else -> "profile_menu_invite"
+            }
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -299,7 +307,8 @@ private fun MenuCard(
                             1 -> onSettingsClicked()
                         }
                     }
-                    .padding(vertical = 14.dp),
+                    .padding(vertical = 14.dp)
+                    .testTag(itemTag),
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(13.dp),
             ) {
@@ -366,7 +375,8 @@ private fun SettingsDialog(
                     modifier = Modifier
                         .fillMaxWidth()
                         .clickable { onToggleAccuracy(true) }
-                        .padding(vertical = 6.dp),
+                        .padding(vertical = 6.dp)
+                        .testTag("profile_settings_high_accuracy"),
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
@@ -394,7 +404,8 @@ private fun SettingsDialog(
                     modifier = Modifier
                         .fillMaxWidth()
                         .clickable { onToggleAccuracy(false) }
-                        .padding(vertical = 6.dp),
+                        .padding(vertical = 6.dp)
+                        .testTag("profile_settings_balanced_power"),
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
@@ -421,7 +432,8 @@ private fun SettingsDialog(
         confirmButton = {
             TextButton(
                 onClick = onDismiss,
-                colors = ButtonDefaults.textButtonColors(contentColor = radioSelectedColor)
+                colors = ButtonDefaults.textButtonColors(contentColor = radioSelectedColor),
+                modifier = Modifier.testTag("profile_settings_close_button"),
             ) {
                 Text("Kapat", style = labelM.copy(fontWeight = FontWeight.Bold))
             }
@@ -440,7 +452,8 @@ private fun LogoutCard(onLogout: () -> Unit) {
             .shadow(elevation = 4.dp, shape = RoundedCornerShape(16.dp))
             .background(if (isDark) SurfaceDark else Color.White)
             .clickable(onClick = onLogout)
-            .padding(15.dp),
+            .padding(15.dp)
+            .testTag("profile_logout_button"),
         verticalAlignment     = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.Center,
     ) {
