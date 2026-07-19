@@ -18,6 +18,7 @@ import com.turkcell.rencar_pair.ui.auth.register.RegisterRoute
 import com.turkcell.rencar_pair.ui.home.HomeRoute
 import com.turkcell.rencar_pair.ui.home.ActiveRentalSummary
 import com.turkcell.rencar_pair.ui.onboarding.OnboardingRoute
+import com.turkcell.rencar_pair.ui.payment.checkout.PaymentCheckoutRoute
 import com.turkcell.rencar_pair.ui.splash.SplashDestination
 import com.turkcell.rencar_pair.ui.splash.SplashRoute
 import com.turkcell.rencar_pair.ui.history.HistoryRoute
@@ -42,6 +43,7 @@ private const val ROUTE_RESERVATION = "reservation"
 private const val ROUTE_VEHICLE_CONDITION = "vehicle-condition"
 private const val ROUTE_ACTIVE_RENTAL = "active-rental"
 private const val ROUTE_TRIP_SUMMARY = "trip-summary"
+private const val ROUTE_PAYMENT_CHECKOUT = "payment-checkout"
 
 // Arac detayi alinamadiginda kullanilir. Rota bosluk birakilamayan path segment'lerinden
 // olustugu icin bos string yerine gorunur bir yer tutucu gerekiyor.
@@ -301,6 +303,23 @@ fun RencarNavHost(
                         popUpTo(ROUTE_HOME)
                     }
                 },
+                onRedirectToVehicleConditionBefore = { rentalId, vehicleId, brand, model, plate ->
+                    navController.navigate(
+                        vehicleConditionRoute(
+                            mode = "BEFORE",
+                            rentalId = rentalId,
+                            vehicleId = vehicleId,
+                            brand = brand,
+                            model = model,
+                            plate = plate,
+                            pricePerDay = "0.0",
+                            durationSeconds = "0",
+                            distanceMeters = "0.0",
+                        ),
+                    ) {
+                        popUpTo(ROUTE_HOME)
+                    }
+                },
             )
         }
 
@@ -322,6 +341,21 @@ fun RencarNavHost(
                         popUpTo(0) { inclusive = true }
                     }
                 },
+                onNavigateToIyzicoCheckout = { rentalId, totalPrice ->
+                    navController.navigate("$ROUTE_PAYMENT_CHECKOUT/$rentalId/$totalPrice")
+                },
+            )
+        }
+
+        composable(
+            route = "$ROUTE_PAYMENT_CHECKOUT/{rentalId}/{totalPrice}",
+            arguments = listOf(
+                navArgument("rentalId") { type = NavType.StringType },
+                navArgument("totalPrice") { type = NavType.StringType },
+            ),
+        ) {
+            PaymentCheckoutRoute(
+                onBack = { navController.popBackStack() },
             )
         }
 
