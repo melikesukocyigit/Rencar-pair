@@ -20,6 +20,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
@@ -139,7 +140,9 @@ fun WalletScreen(
                         text     = "+ Ekle",
                         style    = titleS,
                         color    = if (isDark) PrimaryOnDark else Primary,
-                        modifier = Modifier.clickable { onIntent(WalletIntent.ToggleAddCardDialog) },
+                        modifier = Modifier
+                            .clickable { onIntent(WalletIntent.ToggleAddCardDialog) }
+                            .testTag("wallet_add_card_link"),
                     )
                 }
                 Spacer(Modifier.height(11.dp))
@@ -257,7 +260,7 @@ fun WalletScreen(
                                 focusedTextColor     = textPrimary,
                                 unfocusedTextColor   = textPrimary,
                             ),
-                            modifier = Modifier.fillMaxWidth(),
+                            modifier = Modifier.fillMaxWidth().testTag("wallet_card_no_input"),
                         )
                     }
 
@@ -284,7 +287,7 @@ fun WalletScreen(
                                     focusedTextColor     = textPrimary,
                                     unfocusedTextColor   = textPrimary,
                                 ),
-                                modifier = Modifier.fillMaxWidth(),
+                                modifier = Modifier.fillMaxWidth().testTag("wallet_card_expiry_input"),
                             )
                         }
                         Column(
@@ -304,7 +307,7 @@ fun WalletScreen(
                                     focusedTextColor     = textPrimary,
                                     unfocusedTextColor   = textPrimary,
                                 ),
-                                modifier = Modifier.fillMaxWidth(),
+                                modifier = Modifier.fillMaxWidth().testTag("wallet_card_holder_input"),
                             )
                         }
                     }
@@ -313,7 +316,7 @@ fun WalletScreen(
 
                     Button(
                         onClick  = { onIntent(WalletIntent.SubmitAddCard) },
-                        modifier = Modifier.fillMaxWidth().height(56.dp),
+                        modifier = Modifier.fillMaxWidth().height(56.dp).testTag("wallet_submit_add_card_button"),
                         shape    = RoundedCornerShape(16.dp),
                         colors   = ButtonDefaults.buttonColors(containerColor = primaryColor),
                     ) {
@@ -357,7 +360,7 @@ fun WalletScreen(
                         focusedTextColor     = textPrimary,
                         unfocusedTextColor   = textPrimary,
                     ),
-                    modifier      = Modifier.fillMaxWidth(),
+                    modifier      = Modifier.fillMaxWidth().testTag("wallet_load_amount_input"),
                 )
                 Text("Kullanılacak kart", style = bodyS.copy(fontWeight = FontWeight.Bold), color = textPrimary)
                 state.cards.forEach { card ->
@@ -393,7 +396,7 @@ fun WalletScreen(
                 }
                 Button(
                     onClick  = { onIntent(WalletIntent.SubmitLoadBalance) },
-                    modifier = Modifier.fillMaxWidth().height(56.dp),
+                    modifier = Modifier.fillMaxWidth().height(56.dp).testTag("wallet_submit_load_balance_button"),
                     shape    = RoundedCornerShape(16.dp),
                     colors   = ButtonDefaults.buttonColors(containerColor = primaryColor),
                 ) { Text("Yüklemeyi Onayla", style = titleL) }
@@ -449,7 +452,8 @@ private fun BalanceCard(balance: Double, onLoadClick: () -> Unit) {
                     .height(46.dp)
                     .clip(RoundedCornerShape(14.dp))
                     .background(Color.White.copy(alpha = 0.18f))
-                    .clickable(onClick = onLoadClick),
+                    .clickable(onClick = onLoadClick)
+                    .testTag("wallet_load_balance_button"),
                 contentAlignment = Alignment.Center,
             ) {
                 Row(

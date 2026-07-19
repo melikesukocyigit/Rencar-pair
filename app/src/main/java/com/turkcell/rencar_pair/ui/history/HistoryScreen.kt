@@ -29,6 +29,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -288,7 +289,7 @@ private fun SearchField(
             singleLine = true,
             textStyle = bodyS.copy(color = onSurface),
             cursorBrush = SolidColor(onSurface),
-            modifier = Modifier.weight(1f),
+            modifier = Modifier.weight(1f).testTag("history_search_input"),
             decorationBox = { innerTextField ->
                 if (query.isEmpty()) {
                     Text(text = "Araç adı veya plaka ara…", style = bodyS, color = textHint)
@@ -354,7 +355,8 @@ private fun MonthFilterDropdown(
                 .clip(RoundedCornerShape(12.dp))
                 .background(surfacePressed)
                 .clickable { expanded = true }
-                .padding(horizontal = 12.dp, vertical = 9.dp),
+                .padding(horizontal = 12.dp, vertical = 9.dp)
+                .testTag("history_month_filter_dropdown"),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(6.dp),
         ) {
@@ -405,7 +407,8 @@ private fun SortToggleChip(
             .clip(RoundedCornerShape(12.dp))
             .background(surfacePressed)
             .clickable(onClick = onClick)
-            .padding(horizontal = 12.dp, vertical = 9.dp),
+            .padding(horizontal = 12.dp, vertical = 9.dp)
+            .testTag("history_sort_toggle"),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(6.dp),
     ) {
@@ -458,7 +461,8 @@ private fun TripCard(trip: HistoryTrip, onClick: () -> Unit) {
             .clip(RoundedCornerShape(20.dp))
             .background(MaterialTheme.colorScheme.surface)
             .clickable(onClick = onClick)
-            .padding(14.dp),
+            .padding(14.dp)
+            .testTag("history_trip_card_${trip.id}"),
         verticalAlignment     = Alignment.Top,
         horizontalArrangement = Arrangement.spacedBy(14.dp),
     ) {
