@@ -6,15 +6,30 @@ Rencar, modern Android mimari standartları ve premium kullanıcı deneyimi vizy
 
 ## 📸 Ekran Görüntüleri (Screenshots)
 
-*Uygulama içi ekran görüntülerini eklemek veya güncellemek için `docs/images/` dizinine ilgili görselleri yerleştirebilirsiniz.*
+Uygulamanın kullanıcı akışı boyunca yer alan 14 ekran görseli ve açıklamaları aşağıda kategorize edilmiştir:
 
-| Splash & Onboarding | Giriş & OTP Doğrulama | Ana Harita & Filtreler |
+### 1. Oturum, Kayıt & Cüzdan Akışı
+| Açılış (Splash) | Kayıt Ol (Register) | Giriş Yap (Login) |
 | :---: | :---: | :---: |
-| ![Splash](docs/images/splash.png) <br> *Açılış & Tanıtım* | ![Giriş](docs/images/login.png) <br> *Telefon & OTP Girişi* | ![Harita](docs/images/map.png) <br> *Araç Listesi & Segment Filtreleri* |
+| ![Splash](docs/images/splash.png) <br> *Açılış Ekranı* | ![Register](docs/images/register.png) <br> *Kullanıcı Kaydı* | ![Login](docs/images/login.png) <br> *Telefon Numarası Girişi* |
 
-| Ehliyet & AI Doğrulama | Aktif Yolculuk Canlı Takip | Yolculuk Özeti & Ödeme |
+| Profil Ekranı | Cüzdan & Kartlar | GPS Hassasiyeti |
 | :---: | :---: | :---: |
-| ![Ehliyet](docs/images/license.png) <br> *AI Yüz Eşleştirme* | ![Aktif Yolculuk](docs/images/active_rental.png) <br> *Haritada Canlı Takip* | ![Ödeme](docs/images/payment.png) <br> *Iyzico WebView Ödemesi* |
+| ![Profile](docs/images/profile.png) <br> *Üye Profil Detayları* | ![Wallet](docs/images/wallet.png) <br> *Bakiye ve Kayıtlı Kartlar* | ![GPS](docs/images/Gps_accuracy_setting.png) <br> *Sistem Konum İzinleri* |
+
+### 2. Araç Arama, Ehliyet & AI Doğrulama Akışı
+| Müsait Araçlar Haritası | Ehliyet Belgeleri | AI Yüz Doğrulama |
+| :---: | :---: | :---: |
+| ![Map](docs/images/map.png) <br> *Ana Ekran / MapLibre Haritası* | ![License](docs/images/license.png) <br> *Ehliyet Ön/Arka Yükleme* | ![License Verify](docs/images/licence_verify.png) <br> *Cihaz Üstü Yüz Eşleştirme* |
+
+### 3. Kiralama, Yolculuk & İyzico Ödeme Akışı
+| Araç Hasar Tespiti | Aktif Yolculuk Paneli | Yolculuk Canlı Harita Takibi |
+| :---: | :---: | :---: |
+| ![Rental Car](docs/images/rental_car.png) <br> *Kiralama Öncesi Fotoğraflar* | ![Active Rental](docs/images/active_rental.png) <br> *Sayaçlar ve Kilit Kontrolü* | ![Active Rental 2](docs/images/active_rental2.png) <br> *Soket ile Canlı Araç Takibi* |
+
+| Yolculuk Özeti | İyzico Ödeme Sayfası |
+| :---: | :---: |
+| ![Payment](docs/images/payment.png) <br> *Ücret ve İndirim Detayları* | ![Iyzico](docs/images/iyzico.png) <br> *WebView Sandbox Ödeme Formu* |
 
 ---
 
