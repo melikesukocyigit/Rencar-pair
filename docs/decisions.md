@@ -465,6 +465,16 @@
 
 - Kapsam Dışı Bırakılan (bilinçli): `ic_car.xml` yandan görünüşlü bir ikon olduğundan aracın gerçek yönüne (bearing) göre döndürülmüyor — döndürülürse yan yatmış gibi görünür. Kullanıcıyla görüşülüp ikon sabit yönde tutulmasına karar verildi. Ayrıca gerçek yol geometrisine oturma (map-matching) da kapsam dışı — bunun için ayrı bir routing/map-matching servisi (ör. OSRM/Valhalla) gerekir, projede yok.
 
+### Lisans (Ehliyet Doğrulama) Ekranı — Soğuk Açılışta Sıkışma, Çıkış Yolu Eklendi
+
+- Karar: `RencarNavHost.kt`, Splash'tan PENDING kullanıcıyı Lisans ekranına yönlendirirken backstack'i `popUpTo(ROUTE_SPLASH) { inclusive = true }` ile temizliyor. Soğuk açılışta (uygulama kapatılıp token PENDING iken yeniden açıldığında) bu ekrana doğrudan düşülüyor ve backstack'te hiçbir önceki ekran kalmıyor; `LicenseScreen`'deki geri oku `navController.popBackStack()` çağırdığından (pop edecek bir şey olmadığı için) hiçbir şey yapmıyor — kullanıcı bu ekranda sıkışıp kalıyordu (canlı testte gözlemlendi).
+
+- Son Güncelleme Tarihi: 19.07.2026
+
+- Uygulama: `ProfileViewModel.logout()` ile birebir aynı desen (`TokenManager.clearTokens()` + Onboarding'e yönlendirme) `LicenseViewModel`'e taşındı (`LicenseIntent.Logout` → `LicenseEffect.NavigateToOnboarding`). `RencarNavHost.kt`, `ProfileRoute`'daki ile aynı `navigate(ROUTE_ONBOARDING) { popUpTo(0) { inclusive = true } }` deseniyle bağlandı. Backend'de oturumu iptal eden bir çağrı yok — mevcut `ProfileViewModel` davranışıyla tutarlı, yalnızca yerel token'lar temizleniyor.
+
+- Kapsam Dışı Bırakılan (bu adımda): "Çıkış yap" bağlantısının görsel tasarımı bilinçli olarak sade bırakıldı, ayrı bir adımda düzeltilecek — bu commit yalnızca fonksiyonel/navigasyon katmanını kapsıyor.
+
 ### TripSummary Ödemesi — İyzico Checkout Form Entegrasyonu
 
 - Karar: Backend'e (`https://rencarv2.halitkalayci.com/api/openapi.json`) İyzico sandbox uçları eklendi (`Iyzico` tag'i: `checkout-form/initialize`, `checkout-form/result/{token}`, doğrudan kart/3DS/iptal/iade uçları) ve `POST /rentals/{id}/pay`'in `PayRentalDto.method` alanına `IYZICO` seçeneği eklendi. Üç alternatif akış arasından (doğrudan kart `POST /iyzico/payments`, native 3DS `payments/threeds/initialize`, Checkout Form) **Checkout Form** seçildi: kart verisi hiç istemciye/backend'imize girmiyor (`paymentPageUrl` WebView'da açılıyor, kullanıcı kartı doğrudan İyzico'nun sayfasına giriyor) ve tamamlanma durumu `GET /iyzico/checkout-form/result/{token}` ile deterministik sorgulanabiliyor; 3DS akışında token bazlı eşdeğer bir sorgu ucu yok, daha kırılgan olurdu.
