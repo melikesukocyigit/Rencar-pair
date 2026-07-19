@@ -40,6 +40,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
@@ -160,7 +161,8 @@ fun OtpScreen(
                 enabled = state.isSubmitEnabled,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(56.dp),
+                    .height(56.dp)
+                    .testTag("otp_submit_button"),
                 shape = RoundedCornerShape(16.dp),
                 colors = ButtonDefaults.buttonColors(
                     containerColor = Primary,
@@ -202,7 +204,8 @@ private fun BackButton(
             .size(40.dp)
             .clip(RoundedCornerShape(12.dp))
             .background(MaterialTheme.colorScheme.surfaceVariant)
-            .clickable(onClick = onClick),
+            .clickable(onClick = onClick)
+            .testTag("otp_back_button"),
         contentAlignment = Alignment.Center,
     ) {
         Icon(
@@ -246,7 +249,8 @@ private fun OtpCodeInput(
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.NumberPassword),
             modifier = Modifier
                 .size(1.dp)
-                .focusRequester(focusRequester),
+                .focusRequester(focusRequester)
+                .testTag("otp_code_input"),
         )
 
         Row(
@@ -324,13 +328,16 @@ private fun ResendRow(
             Text(
                 text = "Kodu tekrar gönder",
                 style = bodyS.copy(color = Primary),
-                modifier = Modifier.clickable(onClick = onResendClick),
+                modifier = Modifier
+                    .clickable(onClick = onResendClick)
+                    .testTag("otp_resend_button"),
             )
         } else {
             Text(
                 text = "Kodu tekrar gönder · $timerText",
                 style = bodyS,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.testTag("otp_resend_timer"),
             )
         }
     }
@@ -353,7 +360,7 @@ private fun ChangePhoneRow(
     androidx.compose.foundation.text.ClickableText(
         text = annotatedText,
         style = bodyM.copy(textAlign = TextAlign.Center),
-        modifier = modifier,
+        modifier = modifier.testTag("otp_change_phone_button"),
         onClick = { offset ->
             val start = annotatedText.indexOf("Değiştir")
             if (offset >= start) onChangeClick()
