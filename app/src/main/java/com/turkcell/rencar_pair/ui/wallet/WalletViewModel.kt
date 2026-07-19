@@ -19,6 +19,11 @@ class WalletViewModel @Inject constructor(
     private val walletRepository: WalletRepository
 ) : ViewModel() {
 
+    companion object {
+        private const val MIN_TOPUP_AMOUNT = 10.0
+        private const val MAX_TOPUP_AMOUNT = 5000.0
+    }
+
     private val _uiState = MutableStateFlow(WalletUiState())
     val uiState: StateFlow<WalletUiState> = _uiState.asStateFlow()
 
@@ -119,9 +124,11 @@ class WalletViewModel @Inject constructor(
     private fun submitLoadBalance() {
         val state = _uiState.value
         val amount = state.loadAmountInput.toDoubleOrNull()
-        if (amount == null || amount <= 0) {
+        // Backend POST /wallet/topup tutari 10-5000 TL ile siniriyor; sinir disi
+        // bir deger sunucuya hic gonderilmeden burada yakalanir.
+        if (amount == null || amount < MIN_TOPUP_AMOUNT || amount > MAX_TOPUP_AMOUNT) {
             viewModelScope.launch {
-                _effect.send(WalletEffect.ShowMessage("Lütfen geçerli bir tutar girin."))
+                _effect.send(WalletEffect.ShowMessage("Lütfen 10 - 5.000 TL arasında bir tutar girin."))
             }
             return
         }

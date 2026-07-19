@@ -347,6 +347,9 @@ fun WalletScreen(
                     onValueChange = { onIntent(WalletIntent.LoadAmountChanged(it)) },
                     label         = { Text("Yüklenecek Tutar (TL)") },
                     placeholder   = { Text("200") },
+                    // Backend POST /wallet/topup tutari 10-5000 TL ile siniriyor; kullanici
+                    // sinir disi bir deger girip gonderene kadar bunu ogrenmiyordu.
+                    supportingText = { Text("10 - 5.000 TL arasında bir tutar girin") },
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                     colors        = OutlinedTextFieldDefaults.colors(
                         focusedBorderColor   = primaryColor,
