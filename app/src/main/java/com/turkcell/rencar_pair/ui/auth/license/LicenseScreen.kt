@@ -18,6 +18,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.Logout
 import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.CameraAlt
 import androidx.compose.material.icons.filled.Check
@@ -601,18 +602,33 @@ fun LicenseScreen(
 
             // Soguk acilista PENDING kullanici dogrudan bu adima dustugunde backstack
             // bos kalabiliyor (yukaridaki geri oku hicbir sey yapmiyor); kullanicinin
-            // sikismadan cikabilmesi icin eklendi.
+            // sikismadan cikabilmesi icin eklendi. ProfileScreen'deki LogoutCard ile
+            // ayni renk deseni (errorContainer/error) kullanilir, tema-farkindalikli.
             if (state.currentStep == LicenseStep.ONAY) {
                 Spacer(modifier = Modifier.height(16.dp))
-                Text(
-                    text = "Çıkış yap",
-                    style = bodyM,
-                    color = MaterialTheme.colorScheme.error,
-                    textAlign = TextAlign.Center,
+                Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .clickable { onIntent(LicenseIntent.Logout) },
-                )
+                        .clip(RoundedCornerShape(16.dp))
+                        .background(MaterialTheme.colorScheme.errorContainer)
+                        .clickable { onIntent(LicenseIntent.Logout) }
+                        .padding(vertical = 15.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.Center,
+                ) {
+                    Icon(
+                        imageVector = Icons.AutoMirrored.Filled.Logout,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.error,
+                        modifier = Modifier.size(19.dp),
+                    )
+                    Spacer(modifier = Modifier.width(9.dp))
+                    Text(
+                        text = "Çıkış yap",
+                        style = bodyM.copy(fontWeight = FontWeight.Bold),
+                        color = MaterialTheme.colorScheme.error,
+                    )
+                }
             }
 
             Spacer(modifier = Modifier.height(24.dp))
