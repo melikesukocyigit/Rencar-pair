@@ -1,6 +1,8 @@
 # Rencar - Araç Kiralama Mobil Uygulaması
 
-Rencar, modern Android mimari standartları ve premium kullanıcı deneyimi vizyonuyla geliştirilmiş, uçtan uca canlı API entegrasyonlarına sahip bir araç kiralama mobil uygulamasıdır. Proje, Turkcell Geleceği Yazanlar 5.0 Kotlin Bootcamp kapsamında, jüri değerlendirmesine hitap edecek şekilde çift tema (Açık ve Koyu Tema) uyumluluğuyla geliştirilmiştir.
+Rencar, dakikalık, saatlik ve günlük planlarla araç kiralamayı sağlayan bir Android uygulamasıdır. Kullanıcı haritadan yakınındaki müsait araçları görür, plan seçip rezerve eder, sürüş öncesi ve sonrası araç fotoğraflarını yükler, yolculuk boyunca anlık ücreti ve aracın canlı konumunu takip eder, sonunda cüzdan veya kartla ödeme yapar. Kiralamanın tüm yaşam döngüsü (PREPARING → ACTIVE → COMPLETED) sunucu tarafındaki durumla senkron yürütülür.
+
+Uygulama Jetpack Compose ile yazıldı; sunum katmanında MVI ve tek yönlü veri akışı, veri katmanında Repository deseni kullanıldı. Üç canlı üçüncü parti entegrasyonu içerir: cihaz üzerinde yüz eşleştirmeyle ehliyet doğrulama (Google ML Kit + TensorFlow Lite), Socket.IO ile canlı araç konumu ve İyzico sandbox ile gerçek ödeme akışı. Açık ve koyu tema tüm ekranlarda desteklenir.
 
 Proje, aşağıda listelenen gerçek kod referanslarıyla desteklenen bir MVI mimarisine ve üç canlı üçüncü parti entegrasyonuna (Google ML Kit / TensorFlow Lite, Socket.IO, İyzico) sahiptir.
 
@@ -15,7 +17,7 @@ Bu README, projenin tüm teknik dokümantasyonunu tek dosyada toplayan merkezi k
 ### 1.1. Genel Bakış
 - [Ekran Görüntüleri ve Açıklamaları](#2-ekran-görüntüleri-ve-açıklamaları)
 - [Mimari ve Sunum Katmanı (MVI)](#4-mimari-ve-sunum-katmanı-mvi-deseni)
-- [Teknoloji Yığını](#5-teknoloji-yığını-tech-stack)
+- [Teknoloji Yığını](#6-teknoloji-yığını-tech-stack)
 
 ### 1.2. Teknik Derinlik
 - [Yüz Doğrulama AI Pipeline'ı](#31-on-device-yapay-zeka-ile-yüz-doğrulama-face-matching-ai-pipeline)
@@ -231,13 +233,13 @@ Proje, bir bootcamp projesinin ötesinde, gerçek üretim pratiklerini yansıtan
 
 | Test Dosyası | Kapsadığı Ekran |
 | :--- | :--- |
-| [`HomeUiStateTest.kt`](https://github.com/melikesukocyigit/Rencar-pair/blob/main/app/src/test/java/com/turkcell/rencar_pair/ui/home/HomeUiStateTest.kt) | Harita / Ana Ekran (207 satır) |
-| [`HistoryUiStateTest.kt`](https://github.com/melikesukocyigit/Rencar-pair/blob/main/app/src/test/java/com/turkcell/rencar_pair/ui/history/HistoryUiStateTest.kt) | Kiralama Geçmişi (201 satır) |
+| [`HomeUiStateTest.kt`](https://github.com/melikesukocyigit/Rencar-pair/blob/main/app/src/test/java/com/turkcell/rencar_pair/ui/home/HomeUiStateTest.kt) | Harita / Ana Ekran  |
+| [`HistoryUiStateTest.kt`](https://github.com/melikesukocyigit/Rencar-pair/blob/main/app/src/test/java/com/turkcell/rencar_pair/ui/history/HistoryUiStateTest.kt) | Kiralama Geçmişi  |
 | [`ActiveRentalUiStateTest.kt`](https://github.com/melikesukocyigit/Rencar-pair/blob/main/app/src/test/java/com/turkcell/rencar_pair/ui/activerental/ActiveRentalUiStateTest.kt) | Aktif Yolculuk Paneli |
-| `VehicleConditionUiStateTest.kt` | Araç Teslim/Alım Fotoğrafları |
-| `ReservationUiStateTest.kt` | Rezervasyon Akışı |
-| `OtpUiStateTest.kt` | OTP Doğrulama |
-| `RegisterUiStateTest.kt` | Kayıt Ol Akışı |
+| [`VehicleConditionUiStateTest.kt`](https://github.com/melikesukocyigit/Rencar-pair/blob/main/app/src/test/java/com/turkcell/rencar_pair/ui/vehiclecondition/VehicleConditionUiStateTest.kt) | Araç Teslim/Alım Fotoğrafları |
+| [`ReservationUiStateTest.kt`](https://github.com/melikesukocyigit/Rencar-pair/blob/main/app/src/test/java/com/turkcell/rencar_pair/ui/reservation/ReservationUiStateTest.kt) | Rezervasyon Akışı |
+| [`OtpUiStateTest.kt`](https://github.com/melikesukocyigit/Rencar-pair/blob/main/app/src/test/java/com/turkcell/rencar_pair/ui/auth/otp/OtpUiStateTest.kt) | OTP Doğrulama |
+| [`RegisterUiStateTest.kt`](https://github.com/melikesukocyigit/Rencar-pair/blob/main/app/src/test/java/com/turkcell/rencar_pair/ui/auth/register/RegisterUiStateTest.kt) | Kayıt Ol Akışı |
 
 Bu testler yalnızca "mutlu senaryo" değil, gerçek kullanıcı hatalarına yol açabilecek sınır durumlarını da kapsar: 5 km yarıçap sınırında tam eşitlik durumu, boş araç listesi, en yakın aracın doğru seçilip seçilmediği, ay/arama filtresi kombinasyonları gibi.
 
@@ -337,27 +339,29 @@ Uygulamadaki tüm iş akışlarının arka planda hangi Retrofit servisleri ve R
 
 ### 9.1. Ön Gereksinimler
 * Android Studio (Koala veya daha yeni sürüm)
-* JDK 17
+* JDK 21 — Android Studio'nun kendi JBR'ını (Settings → Build Tools → Gradle → Gradle JDK) kullanmanız önerilir. Gradle 9.3.1 / AGP 9.1.1 bu proje için JDK 21 ile doğrulanmıştır; çok yeni sürümler (JDK 24+) uyumsuzluk çıkarabilir.
 * Bilgisayarda çalışan bir Android Emülatör veya hata ayıklama modu açık fiziksel cihaz.
 
 ### 9.2. Yapılandırma (`local.properties`)
-Projenin kök dizinindeki `local.properties` dosyasını açarak API sunucu adresini tanımlayın:
+Projenin kök dizinindeki `local.properties` dosyasına aşağıdaki alanları ekleyin:
 ```properties
 sdk.dir=C\:\\Users\\...\\AppData\\Local\\Android\\Sdk
-# Rencar API v2 Base URL
-base.url=https\://rencarv2.halitkalayci.com/
+MAPTILER_API_KEY=kendi-maptiler-anahtarınız
 ```
+`MAPTILER_API_KEY`, [MapTiler](https://www.maptiler.com/)'ın ücretsiz hesabından alınan bir anahtardır ve `app/build.gradle.kts` içinde `BuildConfig` alanına aktarılır; bu anahtar olmadan ana ekrandaki harita hiç yüklenmez. (Backend adresi `local.properties` üzerinden değil, `ApiConfig.kt` içinde sabit olarak tanımlıdır.)
 
 ### 9.3. Çalıştırma
-1. Android Studio'yu açıp projeyi import edin.
-2. Gradle senkronizasyonunun tamamlanmasını bekleyin.
-3. Uygulamayı emülatörünüzde (`emulator-5554`) koşturmak için **Run** tuşuna basın.
+1.  Depoyu klonlayın ve Android Studio'da açın:
+```bash
+   git clone https://github.com/melikesukocyigit/Rencar-pair.git
+```
+2. `local.properties` dosyasını [9.2](#92-yapılandırma-localproperties) bölümündeki gibi doldurun.
+3. Gradle senkronizasyonunun tamamlanmasını bekleyin (**File → Sync Project with Gradle Files**).
+4. Bir emülatör veya fiziksel cihaz seçip **Run** tuşuna basın.
 
 ---
 
 ## 10. Ekip
-
-Turkcell Geleceği Yazanlar 5.0 — Kotlin Bootcamp kapsamında geliştirilmiştir.
 
 * Melike Su Koçyiğit
 * Mehmet Karabalcı
