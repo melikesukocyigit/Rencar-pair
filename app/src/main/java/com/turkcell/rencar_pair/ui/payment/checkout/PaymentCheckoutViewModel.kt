@@ -3,10 +3,10 @@ package com.turkcell.rencar_pair.ui.payment.checkout
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.turkcell.rencar_pair.data.model.PayRentalDto
 import com.turkcell.rencar_pair.data.payment.IyzicoPaymentEventBus
 import com.turkcell.rencar_pair.data.repository.IyzicoRepository
 import com.turkcell.rencar_pair.data.repository.RentalRepository
+import com.turkcell.rencar_pair.domain.model.PaymentRequest
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -102,8 +102,7 @@ class PaymentCheckoutViewModel @Inject constructor(
     }
 
     private suspend fun completePayment(iyzicoPaymentId: String) {
-        val dto = PayRentalDto(method = "IYZICO", iyzicoPaymentId = iyzicoPaymentId)
-        val payResult = rentalRepository.payRental(rentalId, dto)
+        val payResult = rentalRepository.payRental(rentalId, PaymentRequest.Iyzico(iyzicoPaymentId))
         _uiState.update { it.copy(isCheckingResult = false) }
         payResult
             .onSuccess {

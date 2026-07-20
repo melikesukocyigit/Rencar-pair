@@ -1,9 +1,9 @@
 package com.turkcell.rencar_pair.data.history
 
 import androidx.compose.ui.geometry.Offset
-import com.turkcell.rencar_pair.data.model.RentalResponseDto
 import com.turkcell.rencar_pair.data.repository.RentalRepository
 import com.turkcell.rencar_pair.data.repository.VehicleRepository
+import com.turkcell.rencar_pair.domain.model.Rental
 import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
 import java.text.SimpleDateFormat
@@ -74,7 +74,7 @@ class HistoryRepositoryImpl @Inject constructor(
         )
     }
 
-    private fun RentalResponseDto.toHistoryTrip(vehicleInfo: VehicleInfo): HistoryTrip {
+    private fun Rental.toHistoryTrip(vehicleInfo: VehicleInfo): HistoryTrip {
         val start = runCatching { isoFormat.parse(startDate) }.getOrNull()
 
         val dateLabel = start?.let { displayFormat.format(it) } ?: startDate
