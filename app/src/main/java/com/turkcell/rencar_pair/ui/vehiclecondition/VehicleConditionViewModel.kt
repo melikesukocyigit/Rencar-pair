@@ -93,8 +93,8 @@ class VehicleConditionViewModel @Inject constructor(
                 fileName = "${side.apiName.lowercase()}.jpg",
             )
                 .onSuccess { photosState ->
-                    val uploadedSides = photosState.photos
-                        .mapNotNull { photo -> VehicleSide.entries.find { it.apiName == photo.side } }
+                    val uploadedSides = photosState.sides
+                        .mapNotNull { side -> VehicleSide.entries.find { it.apiName == side } }
                         .toSet()
                     _uiState.update { it.copy(uploadingSide = null, checkedSides = uploadedSides) }
                 }

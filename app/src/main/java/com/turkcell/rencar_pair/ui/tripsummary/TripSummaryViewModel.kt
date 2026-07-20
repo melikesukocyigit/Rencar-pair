@@ -3,10 +3,10 @@ package com.turkcell.rencar_pair.ui.tripsummary
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.turkcell.rencar_pair.data.model.PayRentalDto
 import com.turkcell.rencar_pair.data.payment.IyzicoPaymentEventBus
 import com.turkcell.rencar_pair.data.repository.RentalRepository
 import com.turkcell.rencar_pair.data.wallet.WalletRepository
+import com.turkcell.rencar_pair.domain.model.PaymentRequest
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -109,12 +109,12 @@ class TripSummaryViewModel @Inject constructor(
                 return@launch
             }
             _uiState.update { it.copy(isPaying = true) }
-            val dto = if (cardId != null) {
-                PayRentalDto(method = "CARD", cardId = cardId)
+            val request = if (cardId != null) {
+                PaymentRequest.Card(cardId)
             } else {
-                PayRentalDto(method = "WALLET")
+                PaymentRequest.Wallet
             }
-            val result = rentalRepository.payRental(_uiState.value.rentalId, dto)
+            val result = rentalRepository.payRental(_uiState.value.rentalId, request)
             _uiState.update { it.copy(isPaying = false) }
             result
                 .onSuccess { _uiState.update { current -> current.copy(isPaid = true) } }

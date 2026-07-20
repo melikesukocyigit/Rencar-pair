@@ -3,8 +3,8 @@ package com.turkcell.rencar_pair.ui.activerental
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.turkcell.rencar_pair.data.model.VehicleLocationPoint
 import com.turkcell.rencar_pair.data.repository.RentalRepository
+import com.turkcell.rencar_pair.domain.model.VehicleLocation
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.delay
@@ -122,7 +122,7 @@ class ActiveRentalViewModel @Inject constructor(
     // viewModelScope iptal edildiginde alt akis (RideLocationClient) de kapanir.
     private fun observeVehicleLocation() {
         viewModelScope.launch {
-            rentalRepository.vehiclePositionStream().collect { point: VehicleLocationPoint ->
+            rentalRepository.vehiclePositionStream().collect { point: VehicleLocation ->
                 _uiState.update {
                     it.copy(vehicleLocation = ActiveRentalLatLng(point.latitude, point.longitude))
                 }
